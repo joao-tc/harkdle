@@ -34,7 +34,7 @@ Category sweep: scope ✅ · rules ✅ (n/a, no game rules) · layer ✅ (n/a, t
 
 | ID  | Requirement | Priority |
 | --- | ----------- | -------- |
-| R1  | WHEN the page loads on `http://127.0.0.1:5173` and the user clicks Login THEN the system SHALL complete Authorization Code + PKCE with scopes `streaming user-read-private user-read-playback-state user-modify-playback-state playlist-read-private playlist-read-collaborative` and store the tokens in memory plus `sessionStorage`. | P1 |
+| R1  | WHEN the page loads on `http://127.0.0.1:5173` and the user clicks Login THEN the system SHALL complete Authorization Code + PKCE with scopes `streaming user-read-private user-read-email user-read-playback-state user-modify-playback-state playlist-read-private playlist-read-collaborative` and store the tokens in memory plus `sessionStorage`. | P1 |
 | R2  | WHEN the access token has under 60s left THEN the SDK token callback SHALL refresh it using the refresh token, and playback SHALL keep working past 1 hour. | P1 |
 | R3  | WHEN the user clicks the start button (a user gesture) THEN the system SHALL connect the SDK player, wait for `ready`, transfer playback to its device and report the device ID. | P1 |
 | R4  | WHEN a playlist ID is entered THEN the system SHALL fetch `GET /playlists/{id}/items?market=from_token` across all pages and report per item: type, `item.is_playable`, presence of `linked_from`, `is_local`, ISRC (`external_ids.isrc`) and duration. | P1 |

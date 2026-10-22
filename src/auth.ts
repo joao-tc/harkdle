@@ -1,6 +1,7 @@
 export const SCOPES = [
   'streaming',
   'user-read-private',
+  'user-read-email', // required by the Web Playback SDK alongside streaming and user-read-private
   'user-read-playback-state',
   'user-modify-playback-state',
   'playlist-read-private',
@@ -15,6 +16,8 @@ export interface Tokens {
   accessToken: string;
   refreshToken: string;
   expiresAt: number;
+  /** scopes Spotify actually granted, space-separated */
+  scope?: string;
 }
 
 export interface KeyValueStore {
@@ -101,6 +104,7 @@ async function tokenRequest(deps: AuthDeps, body: Record<string, string>): Promi
     // a refresh response may omit refresh_token; keep the old one then
     refreshToken: j.refresh_token ?? body.refresh_token ?? '',
     expiresAt: deps.now() + j.expires_in * 1000,
+    scope: j.scope,
   };
 }
 
@@ -133,6 +137,10 @@ export async function getAccessToken(deps: AuthDeps): Promise<string> {
   const fresh = await tokenRequest(deps, { grant_type: 'refresh_token', refresh_token: t.refreshToken });
   save(deps, fresh);
   return fresh.accessToken;
+}
+
+export function grantedScopes(deps: AuthDeps): string | undefined {
+  return load(deps)?.scope;
 }
 
 export function isLoggedIn(deps: AuthDeps): boolean {

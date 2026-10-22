@@ -19,7 +19,7 @@ describe('pkce', () => {
 describe('scopes', () => {
   it('are exactly those of R1', () => {
     expect(SCOPES.split(' ').sort()).toEqual(
-      ['streaming', 'user-read-private', 'user-read-playback-state', 'user-modify-playback-state', 'playlist-read-private', 'playlist-read-collaborative'].sort(),
+      ['streaming', 'user-read-private', 'user-read-email', 'user-read-playback-state', 'user-modify-playback-state', 'playlist-read-private', 'playlist-read-collaborative'].sort(),
     );
   });
 });
