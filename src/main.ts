@@ -1,7 +1,7 @@
 import './style.css';
-import { getAccessToken, handleCallback, isLoggedIn, isLoopbackHost, startLogin, type AuthDeps } from './auth';
+import { getAccessToken, grantedScopes, handleCallback, isLoggedIn, isLoopbackHost, SCOPES, startLogin, type AuthDeps } from './auth';
 import { runBatch, type Clock, type RunResult } from './flows';
-import { describeItems, fetchAllItems, type ItemInfo } from './playlistCheck';
+import { describeItems, fetchAllItems, parsePlaylistId, type ItemInfo } from './playlistCheck';
 import { CLIP_LENGTHS, FLOWS, makeRunPlan, seededRng, type TrialTrack } from './runPlan';
 import { createSdkPlayer, type SdkPlayer } from './sdkPlayer';
 import { evaluateCell } from './stats';
@@ -48,7 +48,8 @@ const log = (m: string) => {
 };
 const loginBtn = el('button', { textContent: '1. Log in with Spotify' });
 const startBtn = el('button', { textContent: '2. Start player', disabled: true });
-const playlistInput = el('input', { placeholder: 'playlist ID', size: 28 });
+const whoamiBtn = el('button', { textContent: 'Who am I?', disabled: true });
+const playlistInput = el('input', { placeholder: 'playlist ID, URI or URL', size: 28 });
 const checkBtn = el('button', { textContent: '3. Check playlist', disabled: true });
 const runBtn = el('button', { textContent: '4. Run measurement (180 runs)', disabled: true });
 const stopBtn = el('button', { textContent: 'Stop', disabled: true });
@@ -60,7 +61,7 @@ const results = el('div', { className: 'results' });
 app.append(
   el('h1', {}, 'Playback latency spike'),
   banner,
-  el('div', { className: 'row' }, loginBtn, startBtn),
+  el('div', { className: 'row' }, loginBtn, startBtn, whoamiBtn),
   el('div', { className: 'row' }, playlistInput, checkBtn),
   report,
   el('div', { className: 'row' }, runBtn, stopBtn, downloadBtn),
@@ -92,8 +93,22 @@ function enableAfterLogin() {
   loginBtn.disabled = true;
   loginBtn.textContent = 'Logged in';
   startBtn.disabled = false;
+  whoamiBtn.disabled = false;
   checkBtn.disabled = false;
 }
+
+whoamiBtn.onclick = async () => {
+  try {
+    const res = await fetch('https://api.spotify.com/v1/me', { headers: { Authorization: `Bearer ${await token()}` } });
+    const j = await res.json();
+    log(`GET /me → ${res.status}  product=${j.product ?? '(missing: no user-read-private)'}  country=${j.country ?? '-'}  id=${j.id ?? '-'}`);
+    const granted = grantedScopes(auth);
+    const missing = granted === undefined ? null : SCOPES.split(' ').filter((s) => !granted.split(' ').includes(s));
+    log(granted === undefined ? 'Granted scopes: unknown (token predates this check; log out and in again)' : `Granted scopes: ${granted}${missing?.length ? `\nMISSING: ${missing.join(' ')}` : '  (all required present)'}`);
+  } catch (e) {
+    log(`GET /me failed: ${e instanceof Error ? e.message : e}`);
+  }
+};
 
 startBtn.onclick = async () => {
   startBtn.disabled = true;
@@ -119,7 +134,7 @@ function pad(s: string, n: number) {
 }
 
 checkBtn.onclick = async () => {
-  const id = playlistInput.value.trim();
+  const id = parsePlaylistId(playlistInput.value);
   if (!id) return;
   report.textContent = 'Fetching…';
   try {
@@ -183,6 +198,10 @@ runBtn.onclick = async () => {
       player: p,
       clock,
       wasHiddenSince,
+      recover: async () => {
+        log('Player device lost (404). Reconnecting…');
+        log(`Reconnected. Device ID: ${await p.reconnect()}`);
+      },
       takeError: () => {
         const e = lastError;
         lastError = null;
@@ -201,6 +220,12 @@ runBtn.onclick = async () => {
   stopBtn.disabled = true;
   runBtn.disabled = false;
   downloadBtn.disabled = runs.length === 0;
+  if (!stop && runs.length < plan.length) log(`ABORTED after ${runs.length}/${plan.length} runs: too many failures in a row, or the device could not be recovered.`);
+  const count = (f: (r: RunResult) => boolean) => runs.filter(f).length;
+  log(
+    `Web API fallbacks (SDK call not confirmed within 1.5s): prime pause ${count((r) => r.primePauseVia === 'webApi')}, ` +
+      `clip-end pause ${count((r) => r.endPauseVia === 'webApi')}, seek ${count((r) => r.seekVia === 'webApi')}.`,
+  );
   log(`Done: ${runs.length} runs, ${runs.filter((r) => r.failed).length} failed, ${runs.filter((r) => r.hiddenDuringRun).length} overlapped a hidden tab.`);
 };
 
