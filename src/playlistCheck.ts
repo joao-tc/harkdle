@@ -94,3 +94,10 @@ export function describeItems(raw: unknown[]): { items: ItemInfo[]; report: Fiel
   const core = ['items.item', 'items.track', 'is_playable', 'external_ids', 'duration_ms'];
   return { items, report: { total: items.length, present, missing: core.filter((k) => present[k] === 0) } };
 }
+
+/** Accepts a bare ID, a `spotify:playlist:<id>` URI, or an open.spotify.com playlist URL. */
+export function parsePlaylistId(input: string): string {
+  const s = input.trim();
+  const m = s.match(/^spotify:playlist:([A-Za-z0-9]+)$/) ?? s.match(/open\.spotify\.com\/(?:[\w-]+\/)?playlist\/([A-Za-z0-9]+)/);
+  return m?.[1] ?? s;
+}

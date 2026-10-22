@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { describeItem, describeItems, fetchAllItems, type FetchLike } from './playlistCheck';
+import { describeItem, describeItems, fetchAllItems, parsePlaylistId, type FetchLike } from './playlistCheck';
 
 const track = { type: 'track', id: 't1', uri: 'spotify:track:t1', name: 'A', is_playable: true, duration_ms: 1000, external_ids: { isrc: 'X1' } };
 
@@ -54,5 +54,13 @@ describe('fetchAllItems', () => {
   it('throws with the status on a refusal', async () => {
     const fetchFn: FetchLike = async () => ({ ok: false, status: 403, json: async () => ({}) });
     await expect(fetchAllItems('pl', async () => 't', fetchFn)).rejects.toThrow('403');
+  });
+});
+
+describe('parsePlaylistId', () => {
+  it('extracts the ID from a URI, a URL, or a bare ID', () => {
+    expect(parsePlaylistId('spotify:playlist:00SwfVAQVPEVDy75HqlLsD')).toBe('00SwfVAQVPEVDy75HqlLsD');
+    expect(parsePlaylistId(' https://open.spotify.com/playlist/00SwfVAQVPEVDy75HqlLsD?si=abc ')).toBe('00SwfVAQVPEVDy75HqlLsD');
+    expect(parsePlaylistId('00SwfVAQVPEVDy75HqlLsD')).toBe('00SwfVAQVPEVDy75HqlLsD');
   });
 });
