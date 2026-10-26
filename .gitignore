@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Build output and caches
+dist/
+coverage/
+*.tsbuildinfo
+.vite/
+
+# Env: keep secrets local, commit only the example
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# OS and editors
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Personal Claude Code settings (shared ones in .claude/ stay tracked)
+.claude/settings.local.json
