@@ -1,0 +1,168 @@
+{
+	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+	"files": {
+		"includes": [
+			"src/**",
+			"tools/**",
+			"*.ts",
+			"tsconfig.json",
+			"biome.json",
+			"!**/dist",
+			"!**/node_modules",
+			"!src/ui/primitives"
+		]
+	},
+	"formatter": {
+		"enabled": true
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"preset": "recommended"
+		}
+	},
+	"overrides": [
+		{
+			"includes": ["src/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedGlobals": {
+							"level": "error",
+							"options": {
+								"deniedGlobals": {
+									"Spotify": "Spotify SDK types live only in src/spotify/playback/sdk (invariant 5)."
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["src/game/**"],
+			"plugins": ["./rules/no-ambient.grit"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"paths": {
+									"react": "Game rules are pure and headless (invariant 1).",
+									"react-dom": "Game rules are pure and headless (invariant 1).",
+									"zustand": "Game rules are pure and headless (invariant 1)."
+								},
+								"patterns": [
+									{
+										"group": ["**/ui/**", "**/store/**", "**/spotify/**"],
+										"message": "game may not import ui, store or spotify (invariants 1 and 3)."
+									}
+								]
+							}
+						},
+						"noRestrictedGlobals": {
+							"level": "error",
+							"options": {
+								"deniedGlobals": {
+									"window": "Game rules are pure and headless (invariant 1).",
+									"document": "Game rules are pure and headless (invariant 1).",
+									"fetch": "Game rules are pure and headless (invariant 1).",
+									"localStorage": "Game rules are pure and headless (invariant 1).",
+									"sessionStorage": "Game rules are pure and headless (invariant 1).",
+									"navigator": "Game rules are pure and headless (invariant 1).",
+									"location": "Game rules are pure and headless (invariant 1).",
+									"Spotify": "Spotify SDK types live only in src/spotify/playback/sdk (invariant 5)."
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["src/spotify/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"paths": {
+									"react": "spotify may not depend on React (invariant 3).",
+									"react-dom": "spotify may not depend on React (invariant 3).",
+									"zustand": "spotify may not depend on the store library (invariant 3)."
+								},
+								"patterns": [
+									{
+										"group": ["**/ui/**", "**/store/**"],
+										"message": "spotify may not import ui or store (invariant 3)."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["src/store/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"paths": {
+									"react": "store may not depend on React (invariant 3).",
+									"react-dom": "store may not depend on React (invariant 3)."
+								},
+								"patterns": [
+									{
+										"group": ["**/ui/**"],
+										"message": "store may not import ui (invariant 3)."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["src/ui/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": ["**/spotify/**"],
+										"message": "ui reaches spotify through the store (invariant 3)."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["src/spotify/playback/sdk/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedGlobals": "off"
+					}
+				}
+			}
+		}
+	],
+	"css": {
+		"parser": {
+			"tailwindDirectives": true
+		}
+	}
+}

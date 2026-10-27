@@ -1,0 +1,10 @@
+language js
+
+or {
+	`Math.random()` as $c,
+	`Date.now()` as $c,
+	`new Date()` as $c,
+	`performance.now()` as $c
+} where {
+	register_diagnostic(span = $c, message = "No ambient time/randomness: inject a clock or RNG (invariant 2).", severity = "error")
+}
