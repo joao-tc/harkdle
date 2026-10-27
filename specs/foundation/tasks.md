@@ -1,7 +1,7 @@
 # Foundation — tasks
 
 **Spec:** [spec.md](spec.md) · **Design:** [design.md](design.md)
-**Status:** Draft
+**Status:** Done (browser login check and human look pending; see Result)
 
 ## Execution plan
 
@@ -291,18 +291,29 @@ Reads that are shared (not writes): `specs/foundation/design.md` by all; `tsconf
 
 **Verify:** `npm run typecheck && npm run lint && npm test && npm run build`
 
-## Requirement trace (filled in at the end)
+## Requirement trace
 
 | Req | Tasks | Result |
 | --- | ----- | ------ |
-| F-1 | T1 | — |
-| F-2 | T2 | — |
-| F-3 | T3, T4, T11 | — |
-| F-4 | T5, T6 | — |
-| F-5 | T12 | — |
-| F-6 | T6, T8, T9, T11 | — |
-| F-7 | T6, T7, T8 | — |
-| F-8 | T6, T8, T11 | — |
-| F-9 | T7, T8, T10 | — |
-| F-10 | T8, T10, T11 | — |
-| F-11 | T4, T9, T10 | — |
+| F-1 | T1 | ✅ ADR-0001 Accepted in its own commit before code |
+| F-2 | T2 | ✅ |
+| F-3 | T3, T4, T11 | ✅ typecheck, lint, test (130), build green |
+| F-4 | T5, T6 | ✅ 28 fixture cases; invariant 4 covered by `auth.test.ts` |
+| F-5 | T12 | ✅ |
+| F-6 | T6, T8, T9, T11 | ✅ unit-tested; interactive Spotify consent not yet driven |
+| F-7 | T6, T7, T8 | ✅ unit-tested |
+| F-8 | T6, T8, T11 | ✅ unit-tested |
+| F-9 | T7, T8, T10 | ✅ unit-tested with a fake `fetch` |
+| F-10 | T8, T10, T11 | ✅ unit-tested; `localhost` / empty client ID not yet seen in a browser |
+| F-11 | T4, T9, T10 | ✅ copy and wiring tested; no human has looked at the screens yet |
+
+## Result
+
+Done: T1–T12. Outstanding from the spec's Done-when, because they need a person at a browser:
+the real Spotify login round trip (including recording the owner's `/me` `product`), seeing
+`wrong-origin` and `missing-config` on screen, and a look at both screens at desktop width.
+
+Deviations from the plan: TanStack Query was deferred to item 2 (agreed at the plan gate).
+`biome.json` gained `css.parser.tailwindDirectives` after T4's CSS landed (orchestrator fix at the
+wave-2 gate). The shadcn nova preset pulled in the `cn` package (published by shadcn-ui),
+`radix-ui`, `tw-animate-css`, Geist, and `shadcn` itself as a runtime dependency for its CSS.

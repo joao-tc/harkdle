@@ -2,7 +2,7 @@
 
 **Size:** Large
 **Sub-phase:** single (the only rule worth testing is the account check; the two screens are thin)
-**Status:** Draft (ledger closed; plan awaiting approval)
+**Status:** Implemented; awaiting the interactive login check
 **Parent:** [specs/app-v1/spec.md](../app-v1/spec.md), item 0
 **Branch:** `feat/0/foundation` (from `main`)
 
