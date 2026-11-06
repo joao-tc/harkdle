@@ -22,46 +22,49 @@ across generic subagents instead of dribbling out one file at a time.
 
 ## Project profile — the one section to keep current
 
-harkdle is a **new web game**; the repo started empty and the stack is
-not chosen yet. Everything stack-specific lives here and nowhere else,
-so the rest of the skill never goes stale.
+harkdle is a **client-only React SPA** that plays Spotify tracks through
+the Web Playback SDK ([ADR-0001](../../../docs/adr/0001-stack-and-playback.md),
+[app spec](../../../specs/app-v1/spec.md)). Everything stack-specific
+lives here and nowhere else, so the rest of the skill never goes stale.
 
 | Field | Value |
 | ----- | ----- |
-| Stack (language, framework, renderer, bundler) | **TBD** — first Large item, becomes ADR-0001 |
-| Package manager | TBD |
-| Layout (where logic / rendering / data live) | TBD |
-| Persistence & hosting | TBD |
+| Stack (language, framework, renderer, bundler) | TypeScript, React 19, Vite, Tailwind 4 + shadcn/ui, Zustand (vanilla store), Biome, Vitest. TanStack Query arrives with the playlist item. |
+| Package manager | npm |
+| Layout (where logic / rendering / data live) | `src/game/` rules (pure; item 1) · `src/spotify/` auth, Web API, playback adapter (`playback/sdk/` holds the only SDK types) · `src/store/` Zustand stores, no React · `src/ui/` screens, `src/ui/primitives/` generated shadcn · `src/main.tsx` composition root (the only place real `fetch`, `Date.now`, `localStorage`, `location` are passed in) · `tools/` repo tooling and its tests |
+| Persistence & hosting | `localStorage`, versioned (`harkdle.*` keys). GitHub Pages via Actions (item 4). No backend, no URL routing: the current screen is store state. |
 
-**Gates** — the project's real commands. Discover them from
-`package.json` scripts / CI config; never type one from memory.
+**Gates** — the project's real commands (from `package.json`).
 
 | Gate | Command | Notes |
 | ---- | ------- | ----- |
-| Typecheck | TBD | |
-| Lint / format | TBD | only if the repo has one — don't invent it |
-| Test (all) | TBD | |
-| Test (one suite) | TBD | what a task's `Verify` uses |
-| Build | TBD | |
-| Invariants | TBD | script or test that enforces the table below, if any |
+| Typecheck | `npm run typecheck` | `tsc --noEmit` |
+| Lint / format | `npm run lint` | `biome check .`; also enforces the invariants |
+| Test (all) | `npm test` | `vitest run`; node environment, screens opt into jsdom per file |
+| Test (one suite) | `npm test -- <path>` | e.g. `npm test -- src/spotify/auth` |
+| Build | `npm run build` | `tsc --noEmit && vite build` |
+| Invariants | `npm run lint && npm test -- tools/invariants` | the second command proves each rule fires on a violating fixture |
 
-**Invariants** — rules that must hold regardless of feature, ideally
-mechanically checked. Proposed starting set (confirm during the stack
-ADR; drop or change any the user rejects):
+Dev server: `npm run dev` on `http://127.0.0.1:5173` (never `localhost`:
+Spotify rejects it and the PKCE verifier lives per origin). Parallel
+subagents must not start it; the orchestrator owns the port.
 
-| # | Invariant | Why |
-| - | --------- | --- |
-| 1 | Game rules/logic are **pure and headless**: no DOM, canvas, or framework imports | Rules must be unit-testable and replayable without a browser |
-| 2 | **No ambient time or randomness** in game logic: clock and RNG are injected (seeded RNG) | Deterministic tests, replays, and any daily/seeded mechanic |
-| 3 | Dependencies point one way: rendering/UI → logic, never the reverse | Keeps logic reusable and the renderer swappable |
-| 4 | Persisted/serialized state carries a version | Schema changes must not corrupt saved progress |
+**Invariants** — rules that must hold regardless of feature.
 
-While a field is TBD, say so in the plan, ask the user, and don't
-fabricate. **The first feature on an empty repo is the stack decision**
-(Large, ADR) — don't plan feature work before it's accepted.
+| # | Invariant | Why | Enforced by |
+| - | --------- | --- | ----------- |
+| 1 | Game rules/logic are **pure and headless**: `src/game/` imports no React, Zustand, DOM globals, `fetch` or storage, and nothing from `ui/`, `store/`, `spotify/` | Rules must be unit-testable and replayable without a browser | Biome `noRestrictedImports` / `noRestrictedGlobals` override on `src/game/**` |
+| 2 | **No ambient time or randomness** in game logic: `Math.random()`, `Date.now()`, `new Date()`, `performance.now()` are errors there; clock and RNG are injected (seeded RNG) | Deterministic tests, replays, and any daily/seeded mechanic | `rules/no-ambient.grit` under the `src/game/**` override |
+| 3 | Dependencies point one way: `ui → store → spotify → game` (`ui` may also use `game`). `spotify` and `store` import no React; `ui` never imports `spotify` (it gets types re-exported by the store) | Keeps logic reusable and the renderer swappable | Biome `noRestrictedImports` overrides per layer |
+| 4 | Persisted/serialized state carries a version, and an unknown or corrupt version reads as "nothing saved" | Schema changes must not corrupt saved progress | Tests (`src/spotify/auth.test.ts`; each new persisted shape adds its own). Not mechanical. |
+| 5 | **No Spotify SDK types outside the `PlaybackAdapter` implementation** (`src/spotify/playback/sdk/**`) | One file absorbs the SDK's quirks | Biome denies the global `Spotify` elsewhere |
 
-Once filled, if an invariant or gate changes, this section and the
-mechanism enforcing it are updated **in the same commit**.
+`tools/invariants.test.ts` writes a violating file per rule into a temp
+directory and asserts Biome flags it, so a rule that silently stops
+working fails `npm test`.
+
+If an invariant or gate changes, this section and the mechanism enforcing
+it are updated **in the same commit**.
 
 ## Where the project's knowledge lives
 

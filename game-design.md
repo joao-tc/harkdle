@@ -49,7 +49,8 @@ The clip lengths are starting values to be tuned through playtesting (see **Tuna
 ### Start Position
 
 - **Classic:** every clip starts at 0:00.
-- **Random start:** each round picks a start point between about 10% and 70% of the track's length. At least 16 seconds plus a margin must remain after it. The start point is stored for the round, so every step uses the same point.
+- **Random start:** each round picks a start point between 10% of the track's length and (length − 18 s). That leaves at least 16 seconds plus a 2-second margin after it. The start point is stored for the round, so every step uses the same point.
+- **Short tracks:** the latest start is (length − 16 s − 2 s margin). If that is below 10% of the length, the round starts at 0:00 and reroll is disabled for it.
 
 #### Rerolling the Start Point (Random start only)
 
@@ -57,6 +58,7 @@ The clip lengths are starting values to be tuned through playtesting (see **Tuna
 - Rerolls are counted **for the whole game**, not per round. A reroll is rarely needed, so a small shared budget is enough.
 - The **first 3 rerolls of a game are free**.
 - Each reroll after that is a **paid reroll**. It reduces the score of the round where it was used by **10%**, down to a minimum of 50% of that round's score. This stops players from rerolling repeatedly in search of an easy section.
+- Paid rerolls stack linearly, per round: the round's score is multiplied by ×(1 − 0.1·n) for n paid rerolls in that round, floored at ×0.5.
 - Rerolling does not change the current step.
 - The screen shows how many free rerolls are left.
 
@@ -68,11 +70,29 @@ The three guess fields are visible during the whole round. Each uses autocomplet
 - **Artist:** the main artist earns full credit and a featured artist earns partial credit.
 - **Album:** skipped when the track comes from a **single** (which includes EPs) or a **compilation**. The player sees a short note explaining why it was skipped.
 
+### Suggestions
+
+- Each field suggests only its own kind (titles, artists, albums), deduplicated after normalization.
+- Picking a suggestion reveals nothing about the other fields.
+
+### When Is a Guess Correct?
+
+- The player must **pick a suggestion**.
+- The comparison uses normalized text: case- and accent-insensitive, with version suffixes stripped (`- Remastered 2011`, `(feat. X)`, `- Live`, `- Radio Edit`, `(Deluxe Edition)`…).
+- A same-titled song by another artist also counts for Title.
+
+### Main vs Featured Artist
+
+- `artists[0]` is the main artist and earns full credit.
+- Any other listed artist is a featured artist and earns **50%** of the Artist points.
+- A featured-artist guess locks the Artist field at 50%. It costs no step and is final (no later upgrade).
+
 ### Submitting
 
 - The player can submit any combination of the unlocked fields at once.
 - A **correct** field **locks in** and costs nothing.
 - **Any wrong field advances one step.** A submission costs at most one step, however many fields were wrong.
+- Mixed submission (one field right, one wrong): the correct fields lock at the **current** step, then the step advances once.
 - Each locked field records the step at which it was guessed. Its points are based on that step.
 
 ### End of Round
@@ -99,6 +119,7 @@ The points for the fields that were guessed are added together. A player who get
 
 - Title, artist and album: **×1.5**
 - Title and artist, when the album question was skipped: **×2.0**. Skipped rounds get no album points, so the higher multiplier keeps them close to a normal round.
+- A featured-artist lock still earns the hat trick: the combo needs every required field locked, at whatever credit.
 
 **Mode multiplier:** Random start scores **×1.25**.
 
@@ -138,12 +159,12 @@ All gameplay numbers live in **one configuration file**, not scattered through t
 | Title points per step | 1000, 800, 600, 400, 250, 100 |
 | Artist points | 30% of the title points for the same step |
 | Album points | 50% of the title points for the same step |
-| Featured-artist credit | partial (exact value to be decided) |
+| Featured-artist credit | 50% of the Artist points |
 | Combo multiplier | ×1.5 |
 | Combo multiplier, album skipped | ×2.0 |
 | Random-start multiplier | ×1.25 |
-| Random start range | 10%–70% of the track's length |
-| Minimum time left after the start point | 16s plus a margin |
+| Random start range | 10% of the track's length to (length − 18 s) |
+| Minimum time left after the start point | 16s plus a 2s margin |
 | Free rerolls per game | 3 |
 | Penalty per paid reroll | −10% of the score of the round where it was used |
 | Minimum after reroll penalties | 50% of the round's score |
@@ -151,7 +172,6 @@ All gameplay numbers live in **one configuration file**, not scattered through t
 
 ## Open Questions
 
-- What partial credit should a featured artist earn?
 - Do the reroll penalty values feel right? To be decided through playtesting.
 
 ## Saved for Later
