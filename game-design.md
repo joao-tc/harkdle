@@ -78,7 +78,8 @@ The three guess fields are visible during the whole round. Each uses autocomplet
 ### When Is a Guess Correct?
 
 - The player must **pick a suggestion**.
-- The comparison uses normalized text: case- and accent-insensitive, with version suffixes stripped (`- Remastered 2011`, `(feat. X)`, `- Live`, `- Radio Edit`, `(Deluxe Edition)`…).
+- The comparison uses normalized text: case- and accent-insensitive, with version suffixes stripped. Normalization strips the **conservative list**: remaster(ed) [year], feat./ft./featuring, live (including "Live at X"), radio edit, single/album version, mono/stereo version, deluxe/expanded/anniversary/special edition, bonus track. Remix, acoustic, demo, instrumental and cover stay distinct. Tags are stripped only inside brackets or after a trailing dash, never at the start of a title, so "Live and Let Die" is untouched. A title that would be left empty keeps its tag.
+- After suffix stripping, **delete every character that is not a Unicode letter, number or whitespace**, then collapse whitespace. "Don’t Stop" = "Dont Stop", "P!nk" = "Pnk". A text that would normalize to empty keeps its trimmed, lowercased, accent-stripped form.
 - A same-titled song by another artist also counts for Title.
 
 ### Main vs Featured Artist
@@ -129,6 +130,8 @@ Order of calculation for a round:
 
 > (title + artist + album points) × combo × mode multiplier × reroll penalty
 
+Field points stay exact (a featured-artist lock at step 5 is 37.5). The **round total is rounded once**, with `Math.round`, after all multipliers (combo, random-start, reroll penalty). The running score is a sum of integer round totals.
+
 Example maximum at step 1 in Classic:
 
 - Normal round: (1000 + 300 + 500) × 1.5 = **2700**
@@ -147,6 +150,7 @@ Both modes can be played with Classic or Random start.
 
 - Final score
 - **Histogram:** how many songs were guessed at each step (1–6), plus a "missed" column
+  - A round counts at the step where its **Title** was locked. "Missed" means the Title was never locked, even if the artist or album were. This is the same rule as the Endless miss.
 - **Hat-trick count**
 
 ## Tunable Parameters
