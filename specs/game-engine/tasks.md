@@ -1,7 +1,7 @@
 # Game engine — tasks
 
 **Spec:** [spec.md](spec.md) · **Design:** [design.md](design.md)
-**Status:** In progress — waves 1–4 ✅
+**Status:** Done — all waves ✅
 
 ## Execution plan
 
@@ -218,7 +218,7 @@ Every logic task: **Invariants** 1, 2, 3 — no React, Zustand, DOM globals, `fe
 
 **Verify:** `npm test -- src/game/game` → expect the suite passing
 
-### T8 — Seeded full-game replay
+### ✅ T8 — Seeded full-game replay
 
 **Wave:** 5 · **Layer:** logic · **Requirement:** R5, R7–R10, R12, E-7
 **Depends on:** T7

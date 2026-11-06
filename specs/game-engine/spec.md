@@ -2,7 +2,7 @@
 
 **Size:** Large (new shared contract that items 5, 7 and 8 consume)
 **Sub-phase:** logic (no rendered surface; items 5 and 7 are the visual halves)
-**Status:** Draft
+**Status:** Implemented
 **Parent:** [specs/app-v1/spec.md](../app-v1/spec.md), item 1
 **Branch:** `feat/1/game-engine` (from `main`)
 
@@ -74,7 +74,7 @@ Epic requirement IDs are kept where this item delivers them. `E-` rows are this 
 
 ## Done when
 
-- [ ] `npm test -- src/game` is green, and every P1 requirement above traces to a passing test.
-- [ ] `npm run typecheck`, `npm run lint`, `npm test` and `npm run build` are green on the branch, and the invariants test still proves each rule fires.
-- [ ] A scripted, seeded full game replays to hand-computed scores (the oracle numbers come from the `game-design.md` tables, not from the scoring code).
-- [ ] `game-design.md` carries the four rules from E-9.
+- [x] `npm test -- src/game` is green, and every P1 requirement above traces to a passing test.
+- [x] `npm run typecheck`, `npm run lint`, `npm test` and `npm run build` are green on the branch, and the invariants test still proves each rule fires.
+- [x] A scripted, seeded full game replays to hand-computed scores (the oracle numbers come from the `game-design.md` tables, not from the scoring code).
+- [x] `game-design.md` carries the four rules from E-9.
