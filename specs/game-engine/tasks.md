@@ -1,7 +1,7 @@
 # Game engine — tasks
 
 **Spec:** [spec.md](spec.md) · **Design:** [design.md](design.md)
-**Status:** In progress — wave 1 ✅
+**Status:** In progress — waves 1–2 ✅
 
 ## Execution plan
 
@@ -134,7 +134,7 @@ Every logic task: **Invariants** 1, 2, 3 — no React, Zustand, DOM globals, `fe
 
 **Verify:** `git diff --stat game-design.md` → one file, additions only except the replaced "…" example list
 
-### T4 — Matching
+### ✅ T4 — Matching
 
 **Wave:** 2 · **Layer:** logic · **Requirement:** E-2, E-3, R7
 **Depends on:** T1, T2
@@ -152,7 +152,7 @@ Every logic task: **Invariants** 1, 2, 3 — no React, Zustand, DOM globals, `fe
 
 **Verify:** `npm test -- src/game/match` → expect the suite passing
 
-### T5 — Scoring
+### ✅ T5 — Scoring
 
 **Wave:** 2 · **Layer:** logic · **Requirement:** R8, R9, A11, A21
 **Depends on:** T1
