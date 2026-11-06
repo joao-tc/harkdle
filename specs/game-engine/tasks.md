@@ -1,7 +1,7 @@
 # Game engine — tasks
 
 **Spec:** [spec.md](spec.md) · **Design:** [design.md](design.md)
-**Status:** In progress — waves 1–3 ✅
+**Status:** In progress — waves 1–4 ✅
 
 ## Execution plan
 
@@ -197,7 +197,7 @@ Every logic task: **Invariants** 1, 2, 3 — no React, Zustand, DOM globals, `fe
 
 **Verify:** `npm test -- src/game/round` → expect the suite passing
 
-### T7 — Game reducer and summary
+### ✅ T7 — Game reducer and summary
 
 **Wave:** 4 · **Layer:** logic · **Requirement:** R5, R9, R12, E-5, E-6, E-7
 **Depends on:** T1, T3, T5, T6
