@@ -1,7 +1,7 @@
 # Game engine — tasks
 
 **Spec:** [spec.md](spec.md) · **Design:** [design.md](design.md)
-**Status:** Draft
+**Status:** In progress — wave 1 ✅
 
 ## Execution plan
 
@@ -67,7 +67,7 @@ No manifest, lockfile, barrel, Biome config or entry point is touched. `types.ts
 
 Every logic task: **Invariants** 1, 2, 3 — no React, Zustand, DOM globals, `fetch` or storage; no `Math.random()`, `Date.now()`, `new Date()` or `performance.now()`; import only from `src/game/` (and `vitest` in tests). Imports use the `@/game/…` alias. Tests are table-driven, deterministic, and sit beside the source.
 
-### T1 — Shared types and config
+### ✅ T1 — Shared types and config
 
 **Wave:** 1 · **Layer:** logic · **Requirement:** R8, R9, E-7
 **Depends on:** —
@@ -84,7 +84,7 @@ Every logic task: **Invariants** 1, 2, 3 — no React, Zustand, DOM globals, `fe
 
 **Verify:** `npm test -- src/game/config` → expect the suite passing; `npm run typecheck`
 
-### T2 — Text normalization
+### ✅ T2 — Text normalization
 
 **Wave:** 1 · **Layer:** logic · **Requirement:** E-1
 **Depends on:** —
@@ -101,7 +101,7 @@ Every logic task: **Invariants** 1, 2, 3 — no React, Zustand, DOM globals, `fe
 
 **Verify:** `npm test -- src/game/normalize` → expect the suite passing
 
-### T3 — Seeded RNG and shuffle
+### ✅ T3 — Seeded RNG and shuffle
 
 **Wave:** 1 · **Layer:** logic · **Requirement:** R5, E-7
 **Depends on:** —
@@ -119,7 +119,7 @@ Every logic task: **Invariants** 1, 2, 3 — no React, Zustand, DOM globals, `fe
 
 **Verify:** `npm test -- src/game/rng` → expect the suite passing
 
-### T9 — Fold the engine rules into game-design.md
+### ✅ T9 — Fold the engine rules into game-design.md
 
 **Wave:** 1 · **Layer:** docs · **Requirement:** E-9
 **Depends on:** —
