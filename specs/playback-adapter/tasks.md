@@ -1,7 +1,7 @@
 # Playback adapter — tasks
 
 **Spec:** [spec.md](spec.md) · **Design:** [design.md](design.md)
-**Status:** Draft
+**Status:** Implemented (T1–T14 done and gated; T15 live check pending)
 
 ## Execution plan
 
@@ -364,7 +364,7 @@ Every subagent brief carries: the task block, the design's signatures for its fi
 **Do:** Mark the spec and tasks Implemented; mark ROADMAP item 3 implemented and link this spec; if T4 added a grit rule, update invariant 5's "Enforced by" cell in the same commit. Then hand the owner the live-check script (written to the scratchpad, **not** committed) and V1-V5; record the results under **Verified live** in the spec, and set ADR-0003 to Superseded if V1 fails.
 
 **Done when:**
-- [ ] Wave gate clean: `npm run lint`, `npm run typecheck`, `npm test`, `npm test -- tools/invariants`, `npm run build`.
+- [x] Wave gate clean: `npm run lint`, `npm run typecheck`, `npm test`, `npm test -- tools/invariants`, `npm run build`.
 - [ ] V1-V5 recorded by the owner, or this item stays "Implemented, live check pending".
 
 **Verify:** `npm run lint && npm run typecheck && npm test && npm run build`

@@ -57,7 +57,7 @@ subagents must not start it; the orchestrator owns the port.
 | 2 | **No ambient time or randomness** in game logic: `Math.random()`, `Date.now()`, `new Date()`, `performance.now()` are errors there; clock and RNG are injected (seeded RNG) | Deterministic tests, replays, and any daily/seeded mechanic | `rules/no-ambient.grit` under the `src/game/**` override |
 | 3 | Dependencies point one way: `ui → store → spotify → game` (`ui` may also use `game`). `spotify` and `store` import no React; `ui` never imports `spotify` (it gets types re-exported by the store) | Keeps logic reusable and the renderer swappable | Biome `noRestrictedImports` overrides per layer |
 | 4 | Persisted/serialized state carries a version, and an unknown or corrupt version reads as "nothing saved" | Schema changes must not corrupt saved progress | Tests (`src/spotify/auth.test.ts`; each new persisted shape adds its own). Not mechanical. |
-| 5 | **No Spotify SDK types outside the `PlaybackAdapter` implementation** (`src/spotify/playback/sdk/**`) | One file absorbs the SDK's quirks | Biome denies the global `Spotify` elsewhere |
+| 5 | **No Spotify SDK types outside the `PlaybackAdapter` implementation** (`src/spotify/playback/sdk/**`) | One file absorbs the SDK's quirks | Biome `noRestrictedGlobals` denies the global `Spotify` (value and type positions) outside `src/spotify/playback/sdk/**`; `rules/no-sdk-types.grit` denies `window.Spotify` / `globalThis.Spotify` there too. `tools/invariants.test.ts` probes both. |
 
 `tools/invariants.test.ts` writes a violating file per rule into a temp
 directory and asserts Biome flags it, so a rule that silently stops

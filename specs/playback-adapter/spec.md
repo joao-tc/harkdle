@@ -2,7 +2,7 @@
 
 **Size:** Large (new shared contract between `spotify/`, `store/` and later `ui/`; the SDK-wrapper pattern; cue protocol from ADR-0001)
 **Sub-phase:** logic (no screen. The Round, Reveal and "Play here" UI are item 5)
-**Status:** Draft
+**Status:** Implemented, live check pending (V1–V5)
 **Parent:** [specs/app-v1/ROADMAP.md](../app-v1/ROADMAP.md), item 3 (R6, R13, R14 detection, R18)
 **Branch:** `feat/3/playback-adapter` (from `main`)
 
@@ -97,9 +97,34 @@ Epic IDs are kept where this item delivers them. `B-` rows are this item's own.
 
 ## Done when
 
-- [ ] `npm run typecheck`, `npm run lint` and `npm test` are green and `npm run build` succeeds.
-- [ ] The engine suite, run on a virtual clock against the fake transport, covers: cue with the SDK pause ignored (Web API fallback), relinked URIs, stale foreign-track state, 404 → reconnect → retry, clip end by polling, hidden mid-clip, hidden mid-reveal, reveal mid-clip, Play during re-cue, mute/restore on success and on failure, supersede, interruption, `recover()`, and `setVolume` during a cue.
-- [ ] `tools/invariants.test.ts` proves `Spotify` is flagged outside `src/spotify/playback/sdk/**` (value, type position, `window.Spotify`) and not inside it.
-- [ ] `createFakeAdapter` exists with its own test, ready for item 5.
-- [ ] Nothing outside `src/spotify/` and the manifest changes, and nothing is wired into `main.tsx`.
+- [x] `npm run typecheck`, `npm run lint` and `npm test` are green and `npm run build` succeeds.
+- [x] The engine suite, run on a virtual clock against the fake transport, covers: cue with the SDK pause ignored (Web API fallback), relinked URIs, stale foreign-track state, 404 → reconnect → retry, clip end by polling, hidden mid-clip, hidden mid-reveal, reveal mid-clip, Play during re-cue, mute/restore on success and on failure, supersede, interruption, `recover()`, and `setVolume` during a cue.
+- [x] `tools/invariants.test.ts` proves `Spotify` is flagged outside `src/spotify/playback/sdk/**` (value, type position, `window.Spotify`) and not inside it.
+- [x] `createFakeAdapter` exists with its own test, ready for item 5.
+- [x] Nothing outside `src/spotify/` and the manifest changes, and nothing is wired into `main.tsx`.
 - [ ] **Verified live** (V1–V5 above) recorded in this spec by the owner after running the devtools script, with the mute fallback decided if V1 fails.
+
+## Implementation notes
+
+Choices made while implementing, where the spec was silent. Each is pinned by a test in `engine.test.ts`.
+
+- **One pending slot** (B4) holds a `playClip` or a `reveal`. A `reveal()` behind a pending play is a no-op; a `playClip()` behind a pending reveal, or while revealing, resolves `revealed`. An explicit `cue()` settles a pending play as `stopped` so a request made against the old cue never plays the new one.
+- **A Play queued during the re-cue** settles `hidden` when the tab was hidden in the meantime, instead of starting a clip in the background (R14).
+- **Cues and re-cues are serialised**, so two sequences never interleave on the transport. The older `cue()` rejects `superseded` after the newer one is queued.
+- A cue that fails with `device-gone` twice leaves the status `interrupted (device-lost)`, so `recover()` applies; other cue failures leave `idle`.
+- `recover()` always emits `connecting → cueing → ready`; it reconnects only after `device-lost` or from `disconnected`. The target survives `disconnect()`.
+- `setVolume` is remembered but not sent to the SDK while a cue is muting, while connecting, or while disconnected.
+- `engine.ts` is about 560 lines. It is one state machine; it was not split.
+- Invariant 5 needed one new rule: Biome's `noRestrictedGlobals` catches `Spotify` in value and type position, but not `window.Spotify`, so `rules/no-sdk-types.grit` covers `window.Spotify` and `globalThis.Spotify`.
+
+## Verified live
+
+Pending: run the V1–V5 script (kept out of the repo) and record the results here. If V1 fails, record the mute fallback and set ADR-0003 to Superseded before this item is Done.
+
+| # | Result | Notes |
+| - | ------ | ----- |
+| V1 | — | |
+| V2 | — | |
+| V3 | — | |
+| V4 | — | |
+| V5 | — | |
