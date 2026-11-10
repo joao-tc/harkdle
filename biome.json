@@ -9,7 +9,8 @@
 			"biome.json",
 			"!**/dist",
 			"!**/node_modules",
-			"!src/ui/primitives"
+			"!src/ui/primitives",
+			"!src/ui/assets"
 		]
 	},
 	"formatter": {

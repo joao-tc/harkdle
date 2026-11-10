@@ -55,7 +55,7 @@ Track `item` fields seen on 108/108 items: `type: "track"`, `id`, `uri`, `name`,
 
 Response headers readable from the browser: `cache-control`, `content-length`, `content-type` only. `Retry-After` is **not** readable on 200 or 403 and is assumed unreadable on 429 (P17).
 
-**Not yet seen live (P16):** episodes, local files, null items, `is_playable: false`, collaborative playlists, and a 429.
+**Seen live (P16, 2026-11-10):** the owner's edge-case playlist in the Picker showed the expected removal counts, so the documented fields hold for local files, episodes, unavailable tracks and duplicates. **Still not seen live:** null items, collaborative playlists, and a 429.
 
 ## Requirements
 

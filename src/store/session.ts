@@ -21,7 +21,8 @@ export type Screen =
 	| { name: "login" }
 	| { name: "checking" }
 	| { name: "setup-error"; error: SetupErrorKind; detail?: string }
-	| { name: "signed-in"; user: AccountUser };
+	| { name: "signed-in"; user: AccountUser } // the Picker
+	| { name: "setup"; user: AccountUser };
 
 export interface SessionDeps {
 	auth: Auth;
@@ -37,6 +38,8 @@ export interface SessionState {
 	retry(): Promise<void>;
 	logout(): void;
 	expire(): void; // the token stopped working mid-session: show the session-expired screen
+	toSetup(): void; // Picker -> Setup; no-op from any other screen
+	toPicker(): void; // Setup -> Picker; no-op from any other screen
 }
 
 function message(e: unknown): string {
@@ -137,6 +140,18 @@ export function createSessionStore(deps: SessionDeps): StoreApi<SessionState> {
 
 			expire() {
 				show({ name: "setup-error", error: "session-expired" });
+			},
+
+			toSetup() {
+				const { screen } = get();
+				if (screen.name !== "signed-in") return;
+				show({ name: "setup", user: screen.user });
+			},
+
+			toPicker() {
+				const { screen } = get();
+				if (screen.name !== "setup") return;
+				show({ name: "signed-in", user: screen.user });
 			},
 		};
 	});
