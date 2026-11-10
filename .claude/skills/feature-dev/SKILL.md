@@ -29,7 +29,7 @@ lives here and nowhere else, so the rest of the skill never goes stale.
 
 | Field | Value |
 | ----- | ----- |
-| Stack (language, framework, renderer, bundler) | TypeScript, React 19, Vite, Tailwind 4 + shadcn/ui, Zustand (vanilla store), Biome, Vitest. TanStack Query arrives with the playlist item. |
+| Stack (language, framework, renderer, bundler) | TypeScript, React 19, Vite, Tailwind 4 + shadcn/ui, Zustand (vanilla store), Biome, Vitest. `@tanstack/query-core` inside `src/store/` (ADR-0002). |
 | Package manager | npm |
 | Layout (where logic / rendering / data live) | `src/game/` rules (pure; item 1) · `src/spotify/` auth, Web API, playback adapter (`playback/sdk/` holds the only SDK types) · `src/store/` Zustand stores, no React · `src/ui/` screens, `src/ui/primitives/` generated shadcn · `src/main.tsx` composition root (the only place real `fetch`, `Date.now`, `localStorage`, `location` are passed in) · `tools/` repo tooling and its tests |
 | Persistence & hosting | `localStorage`, versioned (`harkdle.*` keys). GitHub Pages via Actions (item 4). No backend, no URL routing: the current screen is store state. |

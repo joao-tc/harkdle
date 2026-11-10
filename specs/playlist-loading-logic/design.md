@@ -1,6 +1,6 @@
 # Playlist loading, logic half — design
 
-**Spec:** [spec.md](spec.md) · **ADR:** [ADR-0002](../../docs/adr/0002-server-data-via-query-core-in-the-store.md) (Proposed)
+**Spec:** [spec.md](spec.md) · **ADR:** [ADR-0002](../../docs/adr/0002-server-data-via-query-core-in-the-store.md) (Accepted)
 
 ## Approach
 

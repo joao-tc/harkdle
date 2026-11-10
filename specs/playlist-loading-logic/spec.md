@@ -2,7 +2,7 @@
 
 **Size:** Large (new shared contract across `spotify/`, `store/` and later `ui/`; adds a dependency and a data-fetching pattern)
 **Sub-phase:** logic (the Picker screen is the visual half, specced after this merges)
-**Status:** Draft
+**Status:** Implemented
 **Parent:** [specs/app-v1/spec.md](../app-v1/spec.md), item 2 (R2–R4)
 **Branch:** `feat/2/playlist-loading-logic` (from `main`)
 
@@ -110,8 +110,8 @@ Epic requirement IDs are kept where this item delivers them. `P-` rows are this 
 
 ## Done when
 
-- [ ] `npm run typecheck`, `npm run lint` and `npm test` are green, and `npm run build` succeeds.
-- [ ] The client, cleaning, mapping, suggestion index and store each have a test suite built on synthetic fixtures that pin the verified field names, with fake `fetch` and `sleep` (no real network, no real waiting).
-- [ ] Invariants hold: `src/spotify/` and `src/store/` import no React, `src/ui/` does not import `spotify/` (new files covered by the existing Biome overrides), nothing under `src/game/` changes, and nothing is written to storage.
-- [ ] The visual half's spec carries the P16 live check (edge-case playlist, expected removal counts) as a required item.
+- [x] `npm run typecheck`, `npm run lint` and `npm test` are green, and `npm run build` succeeds.
+- [x] The client, cleaning, mapping, suggestion index and store each have a test suite built on synthetic fixtures that pin the verified field names, with fake `fetch` and `sleep` (no real network, no real waiting).
+- [x] Invariants hold: `src/spotify/` and `src/store/` import no React, `src/ui/` does not import `spotify/` (new files covered by the existing Biome overrides), nothing under `src/game/` changes, and nothing is written to storage.
+- [x] The visual half's spec carries the P16 live check (edge-case playlist, expected removal counts) as a required item.
 - [ ] Manual: re-running the probe snippet shows the same shapes the fixtures encode.
