@@ -147,6 +147,32 @@ describe("createFakeAdapter", () => {
 			});
 		});
 
+		it("waits for a re-cue in flight and then plays once", async () => {
+			const adapter = await ready();
+			const seen = kinds(adapter);
+			const first = adapter.playClip(500);
+			adapter.endClip();
+			await first;
+			const queued = adapter.playClip(500);
+			expect(adapter.playClip(500)).toBe(queued);
+			expect(adapter.getStatus().kind).toBe("cueing");
+			await flush();
+			expect(adapter.getStatus()).toEqual({ kind: "playing-clip", target });
+			adapter.endClip();
+			await expect(queued).resolves.toEqual({ kind: "ended" });
+			expect(seen.filter((kind) => kind === "playing-clip")).toHaveLength(2);
+		});
+
+		it("rejects a play queued during a cue that fails", async () => {
+			const adapter = createFakeAdapter();
+			await adapter.connect({ volume: 0.5 });
+			adapter.failNextCue(new PlaybackError("cue-failed", "no"));
+			const cue = adapter.cue(target).catch(() => undefined);
+			const queued = adapter.playClip(500);
+			await cue;
+			await expect(queued).rejects.toMatchObject({ kind: "not-connected" });
+		});
+
 		it("returns the same pending promise while a clip plays", async () => {
 			const adapter = await ready();
 			const first = adapter.playClip(500);

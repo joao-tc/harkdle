@@ -41,6 +41,7 @@ export function createFakeAdapter(
 	let status: PlaybackStatus = { kind: "disconnected" };
 	let target: CueTarget | null = null;
 	let clip: PendingClip | null = null;
+	let pendingPlay: Promise<ClipOutcome> | null = null;
 	let cueRun = 0;
 	let nextCueFailure: PlaybackError | null = null;
 
@@ -87,6 +88,36 @@ export function createFakeAdapter(
 		await startCue(target, null).catch(() => undefined);
 	};
 
+	const subscribe = (listener: (status: PlaybackStatus) => void) => {
+		listeners.add(listener);
+		return () => {
+			listeners.delete(listener);
+		};
+	};
+
+	const notPlayable = (current: PlaybackStatus) =>
+		current.kind === "interrupted"
+			? new PlaybackError("device-lost", "device lost")
+			: new PlaybackError("not-connected", "nothing is ready to play");
+
+	const beginClip = (): Promise<ClipOutcome> => {
+		let settle: PendingClip["settle"] = () => undefined;
+		const promise = new Promise<ClipOutcome>((resolve) => {
+			settle = resolve;
+		});
+		const pending = { promise, settle };
+		clip = pending;
+		if (status.kind === "ready") {
+			setStatus({ kind: "playing-clip", target: status.target });
+		}
+		if (options.autoEndClips) {
+			queueMicrotask(() => {
+				if (clip === pending) void settleClip({ kind: "ended" }, true);
+			});
+		}
+		return promise;
+	};
+
 	return {
 		get calls() {
 			return calls;
@@ -94,12 +125,7 @@ export function createFakeAdapter(
 
 		getStatus: () => status,
 
-		onStatus(listener) {
-			listeners.add(listener);
-			return () => {
-				listeners.delete(listener);
-			};
-		},
+		onStatus: subscribe,
 
 		async connect(connectOptions) {
 			record("connect", connectOptions);
@@ -131,27 +157,24 @@ export function createFakeAdapter(
 		playClip(lengthMs) {
 			record("playClip", lengthMs);
 			if (clip) return clip.promise;
-			if (status.kind === "interrupted") {
-				return Promise.reject(new PlaybackError("device-lost", "device lost"));
+			if (pendingPlay) return pendingPlay;
+			if (status.kind === "cueing") {
+				const waiting = new Promise<ClipOutcome>((resolve, reject) => {
+					const stop = subscribe((next) => {
+						if (next.kind === "cueing") return;
+						stop();
+						pendingPlay = null;
+						if (next.kind === "ready") resolve(beginClip());
+						else reject(notPlayable(next));
+					});
+				});
+				pendingPlay = waiting;
+				return waiting;
 			}
 			if (status.kind !== "ready") {
-				return Promise.reject(
-					new PlaybackError("not-connected", "nothing is ready to play"),
-				);
+				return Promise.reject(notPlayable(status));
 			}
-			let settle: PendingClip["settle"] = () => undefined;
-			const promise = new Promise<ClipOutcome>((resolve) => {
-				settle = resolve;
-			});
-			const pending = { promise, settle };
-			clip = pending;
-			setStatus({ kind: "playing-clip", target: status.target });
-			if (options.autoEndClips) {
-				queueMicrotask(() => {
-					if (clip === pending) void settleClip({ kind: "ended" }, true);
-				});
-			}
-			return promise;
+			return beginClip();
 		},
 
 		async reveal() {
