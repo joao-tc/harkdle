@@ -340,6 +340,47 @@ describe("login and logout", () => {
 		expect(store.getState().screen).toEqual({ name: "login" });
 	});
 
+	it.each([
+		["signed-in", { loggedIn: true }],
+		["login", { loggedIn: false }],
+	])("expire() from %s shows session-expired", async (_label, opts) => {
+		const h = harness(opts);
+		const store = createSessionStore(h.deps);
+		await store.getState().boot();
+		store.getState().expire();
+		expect(store.getState().screen).toEqual({
+			name: "setup-error",
+			error: "session-expired",
+		});
+	});
+
+	it("expire() while checking shows session-expired", async () => {
+		const d = deferred<AccountResult>();
+		const h = harness({ check: () => d.promise });
+		const store = createSessionStore(h.deps);
+		const booted = store.getState().boot();
+		await Promise.resolve();
+		await Promise.resolve();
+		expect(store.getState().screen).toEqual({ name: "checking" });
+		store.getState().expire();
+		expect(store.getState().screen).toEqual({
+			name: "setup-error",
+			error: "session-expired",
+		});
+		d.resolve({ ok: true, user });
+		await booted;
+	});
+
+	it("retry() after expire() logs out and shows login", async () => {
+		const h = harness();
+		const store = createSessionStore(h.deps);
+		await store.getState().boot();
+		store.getState().expire();
+		await store.getState().retry();
+		expect(h.calls.logout).toBe(1);
+		expect(store.getState().screen).toEqual({ name: "login" });
+	});
+
 	it("logout calls auth.logout and shows login", async () => {
 		const h = harness();
 		const store = createSessionStore(h.deps);

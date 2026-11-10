@@ -32,6 +32,7 @@ export interface FetchResponse {
 	ok: boolean;
 	status: number;
 	json(): Promise<unknown>;
+	headers?: { get(name: string): string | null }; // the real Response has it
 }
 
 export type FetchFn = (

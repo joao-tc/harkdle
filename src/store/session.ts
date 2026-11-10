@@ -36,6 +36,7 @@ export interface SessionState {
 	login(): Promise<void>;
 	retry(): Promise<void>;
 	logout(): void;
+	expire(): void; // the token stopped working mid-session: show the session-expired screen
 }
 
 function message(e: unknown): string {
@@ -132,6 +133,10 @@ export function createSessionStore(deps: SessionDeps): StoreApi<SessionState> {
 			logout() {
 				auth.logout();
 				show({ name: "login" });
+			},
+
+			expire() {
+				show({ name: "setup-error", error: "session-expired" });
 			},
 		};
 	});

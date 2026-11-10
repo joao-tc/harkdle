@@ -130,7 +130,7 @@ Each item is its own `specs/<item>/` folder planned through feature-dev, and non
 | - | ---- | ---- | ----- | ---------- | -------- |
 | 0 | **Foundation** | Large | single | — | A fresh branch from `main`; cherry-pick the findings and ADR; ADR-0001 → Accepted (router removed); fill the feature-dev profile, gates and invariants; Vite + React + Tailwind + shadcn + Zustand + Query + Biome (with import rules); fold A6–A12, A21 into game-design.md. **Real code:** PKCE auth ported from the spike, plus the Login and Setup-error screens (R1). |
 | 1 | **Game engine** | Large | logic | 0 | `src/game/`: config, normalization and matching, scoring, round reducer, X Tracks game reducer (R5, R7–R10, R12 data). Fully unit-tested. |
-| 2 | **Playlist loading** | Medium | logic + visual | 0 | Playlist list, item fetch, cleaning, suggestion index, Picker screen (R2–R4). |
+| 2 | **Playlist loading** | Medium | logic + visual | 0 | Playlist list, item fetch, cleaning, suggestion index, Picker screen (R2–R4). **Logic half implemented** ([specs/playlist-loading-logic](../playlist-loading-logic/spec.md)); the Picker screen is the visual half. |
 | 3 | **Playback adapter** | Large | logic | 0 | `PlaybackAdapter` extracted from the spike (T9) with cue/play/stop, interruption events, volume. A fake adapter for tests (R6, R13, R14 detection, R18). |
 | 4 | **Deploy** | Medium | single | 0 | The Pages workflow, base path, second redirect URI (R19). Early, so the redirect works before there's a game to break. |
 | 5 | **Game loop UI (M1)** | Large | visual | 1, 2, 3 | Game store wiring the engine to the adapter; Setup, Round, Reveal, Results screens; shortcuts; leave-page guard; Play here overlay (R6, R11–R15, R17). |
@@ -139,6 +139,8 @@ Each item is its own `specs/<item>/` folder planned through feature-dev, and non
 | 7 | **Random start + rerolls (M2)** | Large | logic + visual | M1 | R20, R21. |
 | 8 | **Endless (M2)** | Medium | logic + visual | M1 | R22. |
 
+**Required check for item 2's visual half (P16):** load the edge-case playlist (local files, episodes, unplayable or null items, a collaborative playlist, plus a 429 if it can be provoked) in the real Picker and confirm the cleaning summary shows the expected removal counts. The logic half codes these cases against documented fields and synthetic fixtures only.
+
 Items 1, 2, 3 and 4 have disjoint layers and can run as parallel waves once 0 lands.
 
 ## Needs verification (before the item that depends on it)
@@ -146,7 +148,7 @@ Items 1, 2, 3 and 4 have disjoint layers and can run as parallel waves once 0 la
 - How `/me` reports Premium vs Lite/Mini (`product` values), and what a non-allowlisted user gets back (expected 403). This matters for item 0, R1. The SDK `account_error` is the fallback signal.
 - Spotify Design Guidelines on attribution, logo and linking back to the track, for item 5's Reveal screen.
 - Whether the SDK honours `setVolume` under the cued flow without disturbing cue timing (item 3).
-- The edge-case playlist (local files, episodes, region-locked, followed-not-owned, collaborative) is still unrun (spike follow-up). Run it before item 2.
+- The edge-case playlist (local files, episodes, region-locked, followed-not-owned, collaborative) is still unrun (spike follow-up). Item 2's logic half proceeded on documented fields (P16); the visual half must run it in the Picker (see the required check under Roadmap).
 
 ## Done when (v1 = M1 + M2)
 
