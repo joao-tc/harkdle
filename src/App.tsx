@@ -1,19 +1,24 @@
 import { useStore } from "zustand";
 import type { StoreApi } from "zustand/vanilla";
+import type { PlaylistsState } from "@/store/playlists";
 import type { SessionState } from "@/store/session";
 import { LoginScreen } from "@/ui/LoginScreen";
+import { PlaylistPicker } from "@/ui/PlaylistPicker";
 import { SetupErrorScreen } from "@/ui/SetupErrorScreen";
-import { SignedInShell } from "@/ui/SignedInShell";
+import { SetupStandIn } from "@/ui/SetupStandIn";
 
 export function App({
-	store,
+	session,
+	playlists,
 	devUrl,
 }: {
-	store: StoreApi<SessionState>;
+	session: StoreApi<SessionState>;
+	playlists: StoreApi<PlaylistsState>;
 	devUrl: string;
 }) {
-	const screen = useStore(store, (s) => s.screen);
-	const { login, retry, logout } = store.getState();
+	const screen = useStore(session, (s) => s.screen);
+	const selection = useStore(playlists, (s) => s.selection);
+	const { login, retry, logout, toSetup, toPicker } = session.getState();
 
 	switch (screen.name) {
 		case "booting":
@@ -36,6 +41,31 @@ export function App({
 				/>
 			);
 		case "signed-in":
-			return <SignedInShell user={screen.user} onLogout={logout} />;
+			return (
+				<PlaylistPicker
+					user={screen.user}
+					playlists={playlists}
+					onContinue={toSetup}
+					onLogout={logout}
+				/>
+			);
+		case "setup":
+			if (selection.status === "ready" && selection.gate.ok) {
+				return (
+					<SetupStandIn
+						summary={selection.summary}
+						usable={selection.playlist.report.usable}
+						onBack={toPicker}
+					/>
+				);
+			}
+			return (
+				<PlaylistPicker
+					user={screen.user}
+					playlists={playlists}
+					onContinue={toSetup}
+					onLogout={logout}
+				/>
+			);
 	}
 }

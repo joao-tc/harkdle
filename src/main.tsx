@@ -1,8 +1,12 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { checkAccount } from "@/spotify/account";
+import { createSpotifyApi } from "@/spotify/api";
 import { createAuth, redirectUriFor } from "@/spotify/auth";
+import { createPlaylistsClient } from "@/spotify/playlists";
+import { createPlaylistsStore } from "@/store/playlists";
 import { createSessionStore } from "@/store/session";
+import { connectPlaylistsToSession, signedInUserId } from "@/store/wiring";
 import { App } from "./App";
 import "./index.css";
 
@@ -30,7 +34,7 @@ const auth = createAuth({
 	replaceUrl: () => history.replaceState({}, "", import.meta.env.BASE_URL),
 });
 
-const store = createSessionStore({
+const session = createSessionStore({
 	auth,
 	checkAccount: () =>
 		checkAccount({ getAccessToken: () => auth.getAccessToken(), fetchFn }),
@@ -38,12 +42,30 @@ const store = createSessionStore({
 	search: location.search,
 });
 
-void store.getState().boot();
+const sleep = (ms: number) =>
+	new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+const api = createSpotifyApi({
+	getAccessToken: () => auth.getAccessToken(),
+	fetchFn,
+	sleep,
+});
+
+const playlists = createPlaylistsStore({
+	client: createPlaylistsClient(api),
+	getUserId: () => signedInUserId(session),
+	onUnauthorized: () => session.getState().expire(),
+});
+
+connectPlaylistsToSession(session, playlists);
+
+void session.getState().boot();
 
 createRoot(rootElement).render(
 	<StrictMode>
 		<App
-			store={store}
+			session={session}
+			playlists={playlists}
 			devUrl={`${location.protocol}//127.0.0.1:${location.port}`}
 		/>
 	</StrictMode>,
