@@ -1,7 +1,9 @@
 # Playlist loading, visual half — tasks
 
 **Spec:** [spec.md](spec.md) · **Design:** [design.md](design.md)
-**Status:** Draft
+**Status:** T1–T12 implemented and green (typecheck, lint, tests, build). M1–M3 (live P16 check and sign-off) and M4 (docs) are pending.
+
+**Deviation from the plan:** `biome.json` now also excludes `src/ui/assets` (the vendor logo SVG tripped `noSvgWithoutTitle`), so the "no Biome change" line below no longer holds.
 
 ## Gates before wave 1
 
