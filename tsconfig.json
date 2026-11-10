@@ -10,7 +10,7 @@
 		"skipLibCheck": true,
 		"noEmit": true,
 		"isolatedModules": true,
-		"types": ["vite/client"],
+		"types": ["vite/client", "spotify-web-playback-sdk"],
 		"paths": { "@/*": ["./src/*"] }
 	},
 	"include": ["src", "tools", "vite.config.ts"]
