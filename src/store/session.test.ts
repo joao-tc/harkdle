@@ -390,3 +390,119 @@ describe("login and logout", () => {
 		expect(store.getState().screen).toEqual({ name: "login" });
 	});
 });
+
+describe("setup screen", () => {
+	async function signedIn() {
+		const h = harness();
+		const store = createSessionStore(h.deps);
+		await store.getState().boot();
+		return { h, store };
+	}
+
+	it("toSetup() from signed-in shows setup with the same user", async () => {
+		const { store } = await signedIn();
+		store.getState().toSetup();
+		expect(store.getState().screen).toEqual({ name: "setup", user });
+	});
+
+	it("toSetup() twice leaves one setup", async () => {
+		const { store } = await signedIn();
+		store.getState().toSetup();
+		store.getState().toSetup();
+		expect(store.getState().screen).toEqual({ name: "setup", user });
+	});
+
+	it("toSetup() from any other screen changes nothing", async () => {
+		const booting = createSessionStore(harness().deps);
+		booting.getState().toSetup();
+		expect(booting.getState().screen).toEqual({ name: "booting" });
+
+		const loggedOut = createSessionStore(harness({ loggedIn: false }).deps);
+		await loggedOut.getState().boot();
+		loggedOut.getState().toSetup();
+		expect(loggedOut.getState().screen).toEqual({ name: "login" });
+
+		const errored = createSessionStore(
+			harness({ check: async () => ({ ok: false, error: "not-premium" }) })
+				.deps,
+		);
+		await errored.getState().boot();
+		errored.getState().toSetup();
+		expect(errored.getState().screen).toEqual({
+			name: "setup-error",
+			error: "not-premium",
+		});
+
+		const d = deferred<AccountResult>();
+		const pending = createSessionStore(
+			harness({ check: () => d.promise }).deps,
+		);
+		const booted = pending.getState().boot();
+		await Promise.resolve();
+		await Promise.resolve();
+		pending.getState().toSetup();
+		expect(pending.getState().screen).toEqual({ name: "checking" });
+		d.resolve({ ok: true, user });
+		await booted;
+	});
+
+	it("toPicker() from setup returns to signed-in with the same user", async () => {
+		const { store } = await signedIn();
+		store.getState().toSetup();
+		store.getState().toPicker();
+		expect(store.getState().screen).toEqual({ name: "signed-in", user });
+	});
+
+	it("toPicker() from any other screen is a no-op", async () => {
+		const { store } = await signedIn();
+		store.getState().toPicker();
+		expect(store.getState().screen).toEqual({ name: "signed-in", user });
+
+		const booting = createSessionStore(harness().deps);
+		booting.getState().toPicker();
+		expect(booting.getState().screen).toEqual({ name: "booting" });
+
+		const loggedOut = createSessionStore(harness({ loggedIn: false }).deps);
+		await loggedOut.getState().boot();
+		loggedOut.getState().toPicker();
+		expect(loggedOut.getState().screen).toEqual({ name: "login" });
+
+		const errored = createSessionStore(
+			harness({ check: async () => ({ ok: false, error: "not-premium" }) })
+				.deps,
+		);
+		await errored.getState().boot();
+		errored.getState().toPicker();
+		expect(errored.getState().screen).toEqual({
+			name: "setup-error",
+			error: "not-premium",
+		});
+	});
+
+	it("logout() from setup calls auth.logout and shows login", async () => {
+		const { h, store } = await signedIn();
+		store.getState().toSetup();
+		store.getState().logout();
+		expect(h.calls.logout).toBe(1);
+		expect(store.getState().screen).toEqual({ name: "login" });
+	});
+
+	it("expire() from setup shows session-expired", async () => {
+		const { store } = await signedIn();
+		store.getState().toSetup();
+		store.getState().expire();
+		expect(store.getState().screen).toEqual({
+			name: "setup-error",
+			error: "session-expired",
+		});
+	});
+
+	it("retry() from setup is a no-op", async () => {
+		const { h, store } = await signedIn();
+		store.getState().toSetup();
+		await store.getState().retry();
+		expect(store.getState().screen).toEqual({ name: "setup", user });
+		expect(h.calls.checkAccount).toBe(1);
+		expect(h.calls.logout).toBe(0);
+	});
+});
