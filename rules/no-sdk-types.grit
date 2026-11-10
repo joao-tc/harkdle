@@ -1,0 +1,8 @@
+language js
+
+or {
+	`window.Spotify` as $c,
+	`globalThis.Spotify` as $c
+} where {
+	register_diagnostic(span = $c, message = "Spotify SDK types live only in src/spotify/playback/sdk (invariant 5).", severity = "error")
+}

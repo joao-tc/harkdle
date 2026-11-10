@@ -24,6 +24,10 @@
 	},
 	"overrides": [
 		{
+			"includes": ["src/**", "!src/spotify/playback/sdk/**"],
+			"plugins": ["./rules/no-sdk-types.grit"]
+		},
+		{
 			"includes": ["src/**"],
 			"linter": {
 				"rules": {
