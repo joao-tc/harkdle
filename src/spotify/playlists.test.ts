@@ -61,6 +61,7 @@ function fakeApi(routes: Record<string, unknown>) {
 			if (out instanceof Error) throw out;
 			return out;
 		}),
+		put: vi.fn(async () => {}),
 	};
 	return { api, calls };
 }

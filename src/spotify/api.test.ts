@@ -237,3 +237,91 @@ describe("429 policy", () => {
 		expect(err.kind).toBe("network");
 	});
 });
+
+describe("put", () => {
+	it("sends PUT with no body and no Content-Type when body is omitted", async () => {
+		const s = setup([respond(204)]);
+		await expect(s.api.put("/me/player/pause")).resolves.toBeUndefined();
+		expect(s.fetchFn).toHaveBeenCalledWith(`${API_BASE}/me/player/pause`, {
+			method: "PUT",
+			headers: { Authorization: "Bearer tok" },
+		});
+	});
+
+	it("sends a JSON body with Content-Type when given", async () => {
+		const s = setup([respond(204)]);
+		await s.api.put("/me/player/play", { uris: ["spotify:track:x"] });
+		expect(s.fetchFn).toHaveBeenCalledWith(`${API_BASE}/me/player/play`, {
+			method: "PUT",
+			headers: {
+				Authorization: "Bearer tok",
+				"Content-Type": "application/json",
+			},
+			body: '{"uris":["spotify:track:x"]}',
+		});
+	});
+
+	it("resolves on 200 with an unreadable body without reading it", async () => {
+		const json = vi.fn(async () => {
+			throw new SyntaxError("empty");
+		});
+		const s = setup([{ ok: true, status: 200, json }]);
+		await expect(s.api.put("/me/player/pause")).resolves.toBeUndefined();
+		expect(json).not.toHaveBeenCalled();
+	});
+
+	it.each([
+		[401, "unauthorized"],
+		[403, "restricted"],
+		[404, "not-found"],
+		[400, "unexpected"],
+		[500, "unexpected"],
+	] as const)("status %i -> %s", async (status, kind) => {
+		const s = setup([respond(status)]);
+		const err = await kindOf(s.api.put("/me/player/pause"));
+		expect(err.kind).toBe(kind);
+		expect(err.status).toBe(status);
+		expect(s.fetchFn).toHaveBeenCalledTimes(1);
+	});
+
+	it("fetchFn throwing -> network", async () => {
+		const s = setup([new Error("offline")]);
+		const err = await kindOf(s.api.put("/me/player/pause"));
+		expect(err.kind).toBe("network");
+		expect(err.status).toBeNull();
+	});
+
+	it("getAccessToken throwing -> unauthorized, no request", async () => {
+		const s = setup([respond(204)], [new Error("no session")]);
+		const err = await kindOf(s.api.put("/me/player/pause"));
+		expect(err.kind).toBe("unauthorized");
+		expect(s.fetchFn).not.toHaveBeenCalled();
+	});
+
+	it("retries a 429 and resends the method and body each time", async () => {
+		const s = setup([respond(429, {}, "2"), respond(429), respond(204)]);
+		await s.api.put("/me/player/play", { position_ms: 5 });
+		expect(s.waits).toEqual([2000, 2000]);
+		expect(s.fetchFn).toHaveBeenCalledTimes(3);
+		for (const call of s.fetchFn.mock.calls) {
+			expect(call[1].method).toBe("PUT");
+			expect(call[1].body).toBe('{"position_ms":5}');
+		}
+	});
+
+	it("gives up with rate-limited after the last retry", async () => {
+		const s = setup([respond(429)]);
+		const err = await kindOf(s.api.put("/me/player/pause"));
+		expect(err.kind).toBe("rate-limited");
+		expect(s.fetchFn).toHaveBeenCalledTimes(4);
+		expect(s.waits).toEqual([1000, 2000, 4000]);
+	});
+
+	it("rejects a target off the Spotify API with no token fetch and no request", async () => {
+		const s = setup([respond(204)]);
+		const err = await kindOf(s.api.put("https://evil.test/v1/me", {}));
+		expect(err.kind).toBe("unexpected");
+		expect(s.getAccessToken).not.toHaveBeenCalled();
+		expect(s.fetchFn).not.toHaveBeenCalled();
+	});
+});

@@ -37,6 +37,8 @@ export interface SpotifyApi {
 	// `target` is "/path?query" (joined to API_BASE) or an absolute URL that starts
 	// with "https://api.spotify.com/". Anything else throws `unexpected` with no request.
 	get(target: string): Promise<unknown>;
+	/** JSON body optional. Any 2xx resolves with no body read (the playback endpoints answer 204). Same token, 429 policy and typed errors as `get`. */
+	put(target: string, body?: unknown): Promise<void>;
 }
 
 function resolveUrl(target: string): string {
@@ -64,7 +66,11 @@ function message(e: unknown): string {
 export function createSpotifyApi(deps: SpotifyApiDeps): SpotifyApi {
 	const { getAccessToken, fetchFn, sleep } = deps;
 
-	async function attempt(url: string): Promise<FetchResponse> {
+	async function attempt(
+		method: string,
+		url: string,
+		body: unknown,
+	): Promise<FetchResponse> {
 		let token: string;
 		try {
 			token = await getAccessToken();
@@ -75,54 +81,72 @@ export function createSpotifyApi(deps: SpotifyApiDeps): SpotifyApi {
 			);
 		}
 		try {
+			const headers: Record<string, string> = {
+				Authorization: `Bearer ${token}`,
+			};
+			if (body === undefined) return await fetchFn(url, { method, headers });
+			headers["Content-Type"] = "application/json";
 			return await fetchFn(url, {
-				method: "GET",
-				headers: { Authorization: `Bearer ${token}` },
+				method,
+				headers,
+				body: JSON.stringify(body),
 			});
 		} catch (e) {
 			throw new SpotifyApiError("network", message(e));
 		}
 	}
 
+	async function send(
+		method: string,
+		target: string,
+		body?: unknown,
+	): Promise<FetchResponse> {
+		const url = resolveUrl(target);
+		for (let retry = 0; ; retry++) {
+			const res = await attempt(method, url, body);
+			if (res.status === 429) {
+				if (retry >= RATE_LIMIT_RETRIES) {
+					throw new SpotifyApiError("rate-limited", "rate limited", 429);
+				}
+				const wait = retryAfterMs(res) ?? BACKOFF_MS[retry] ?? MAX_WAIT_MS;
+				await sleep(Math.min(MAX_WAIT_MS, wait));
+				continue;
+			}
+			if (res.status === 401) {
+				throw new SpotifyApiError("unauthorized", "unauthorized", 401);
+			}
+			if (res.status === 403) {
+				throw new SpotifyApiError("restricted", "forbidden", 403);
+			}
+			if (res.status === 404) {
+				throw new SpotifyApiError("not-found", "not found", 404);
+			}
+			if (res.status < 200 || res.status >= 300) {
+				throw new SpotifyApiError(
+					"unexpected",
+					`unexpected status ${res.status}`,
+					res.status,
+				);
+			}
+			return res;
+		}
+	}
+
 	return {
 		async get(target) {
-			const url = resolveUrl(target);
-			for (let retry = 0; ; retry++) {
-				const res = await attempt(url);
-				if (res.status === 429) {
-					if (retry >= RATE_LIMIT_RETRIES) {
-						throw new SpotifyApiError("rate-limited", "rate limited", 429);
-					}
-					const wait = retryAfterMs(res) ?? BACKOFF_MS[retry] ?? MAX_WAIT_MS;
-					await sleep(Math.min(MAX_WAIT_MS, wait));
-					continue;
-				}
-				if (res.status === 401) {
-					throw new SpotifyApiError("unauthorized", "unauthorized", 401);
-				}
-				if (res.status === 403) {
-					throw new SpotifyApiError("restricted", "forbidden", 403);
-				}
-				if (res.status === 404) {
-					throw new SpotifyApiError("not-found", "not found", 404);
-				}
-				if (res.status < 200 || res.status >= 300) {
-					throw new SpotifyApiError(
-						"unexpected",
-						`unexpected status ${res.status}`,
-						res.status,
-					);
-				}
-				try {
-					return await res.json();
-				} catch (e) {
-					throw new SpotifyApiError(
-						"unexpected",
-						`unreadable response body: ${message(e)}`,
-						res.status,
-					);
-				}
+			const res = await send("GET", target);
+			try {
+				return await res.json();
+			} catch (e) {
+				throw new SpotifyApiError(
+					"unexpected",
+					`unreadable response body: ${message(e)}`,
+					res.status,
+				);
 			}
+		},
+		async put(target, body) {
+			await send("PUT", target, body);
 		},
 	};
 }
