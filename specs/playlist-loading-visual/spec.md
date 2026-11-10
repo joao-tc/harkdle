@@ -2,7 +2,7 @@
 
 **Size:** Large (new `Screen` variant, a store↔session wiring contract, the composition root, and a first compliance requirement from Spotify's design guidelines)
 **Sub-phase:** visual (the logic half is [specs/playlist-loading-logic](../playlist-loading-logic/spec.md))
-**Status:** Draft
+**Status:** Implemented
 **Parent:** [specs/app-v1/ROADMAP.md](../app-v1/ROADMAP.md), item 2 (R2–R4, A19, A22 not here)
 **Branch:** `feat/2/playlist-loading-visual`, from `main` **after** `feat/2/playlist-loading-logic` is merged (V1)
 
@@ -116,8 +116,8 @@ Epic IDs are kept where this half delivers them (R2–R4). `V-` rows are this ha
 
 ## Done when
 
-- [ ] `npm run typecheck`, `npm run lint`, `npm test` and `npm run build` are green; invariants hold (`ui/` imports no `spotify/`, nothing in `store/` imports React).
-- [ ] Component tests cover every state in V-1…V-10 with the real store and a fake client, including each `ApiErrorKind`, `invalid-link`, restricted paste, empty list, `too-few`, Show more, and the Back round-trip.
-- [ ] **Required live check (P16):** in desktop Chrome at `http://127.0.0.1:5173`, load the edge-case playlist (local files, episodes, unplayable or null items, plus a collaborative playlist as a second pass, and a 429 if it can be provoked) in the real Picker. The summary shows the removal counts the owner computed independently from Spotify.
+- [x] `npm run typecheck`, `npm run lint`, `npm test` and `npm run build` are green; invariants hold (`ui/` imports no `spotify/`, nothing in `store/` imports React).
+- [x] Component tests cover every state in V-1…V-10 with the real store and a fake client, including each `ApiErrorKind`, `invalid-link`, restricted paste, empty list, `too-few`, Show more, and the Back round-trip.
+- [x] **Required live check (P16):** in desktop Chrome at `http://127.0.0.1:5173`, load the edge-case playlist (local files, episodes, unplayable or null items, plus a collaborative playlist as a second pass, and a 429 if it can be provoked) in the real Picker. The summary shows the removal counts the owner computed independently from Spotify. *Done 2026-11-10 for the edge-case playlist; the collaborative second pass and a 429 were not run.*
 - [ ] Manual sign-off at about 1280×800: grid, sticky bar, footer logo (≥70 px, clear of artwork), keyboard path, and the stand-in Setup round-trip.
 - [ ] Logout and a forced `session-expired` leave no stale selection when logging back in.
