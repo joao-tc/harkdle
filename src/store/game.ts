@@ -17,6 +17,8 @@ import {
 // The ui layer may not import from spotify, so it gets these types from here.
 export type { InterruptionReason, PlaylistTrack };
 
+export type Recovery = "idle" | "working" | "failed";
+
 export type Stage =
 	| "idle"
 	| "connecting"
@@ -47,6 +49,8 @@ export interface GameStoreState {
 	readonly revealed: PlaylistTrack | null; // the just-finished round's track, in stage "reveal" and "finished"
 	readonly playback: PlaybackView;
 	readonly skippedNotice: boolean; // a track failed to cue and was replaced
+	readonly countdown: 3 | 2 | 1 | null; // only in stage "countdown"
+	readonly recovery: Recovery; // the last "Play here" attempt
 	readonly rounds: number; // chosen X
 	readonly volume: number; // 0-1
 
@@ -57,10 +61,16 @@ export interface GameStoreState {
 	submit(guess: Guess): void;
 	skip(): void;
 	giveUp(): void;
+	next(): void; // reveal -> countdown -> round, or finished after the last round
+	recover(): Promise<void>; // resolves when the attempt settled
+	dismissNotice(): void;
+	playAgain(): Promise<void>; // resolves when stage is "round" or start failed
 	leave(): void;
 }
 
 export const DEFAULT_VOLUME = 0.8;
+export const COUNTDOWN_FROM = 3;
+export const COUNTDOWN_TICK_MS = 1000;
 
 const PREPARING: PlaybackView = { kind: "preparing" };
 const READY: PlaybackView = { kind: "ready" };
@@ -119,14 +129,26 @@ type CueOutcome = "ready" | "frozen" | "stale" | "finished";
 type Gate = "open" | "acting" | "waiting";
 
 export function createGameStore(deps: GameStoreDeps): StoreApi<GameStoreState> {
-	const { adapter, newRng, onStartFailed, config = DEFAULT_CONFIG } = deps;
+	const {
+		adapter,
+		newRng,
+		sleep,
+		onStartFailed,
+		config = DEFAULT_CONFIG,
+	} = deps;
 	let epoch = 0;
 	let gate: Gate = "open";
 	let tracksById = new Map<string, PlaylistTrack>();
+	let gameTracks: readonly PlaylistTrack[] = [];
 
 	return createStore<GameStoreState>()((set, get) => {
 		const enter = (stage: Stage, changes: Partial<GameStoreState> = {}) => {
-			set({ ...changes, stage, playback: viewOf(adapter.getStatus(), stage) });
+			set({
+				countdown: null,
+				...changes,
+				stage,
+				playback: viewOf(adapter.getStatus(), stage),
+			});
 		};
 
 		adapter.onStatus((status) => {
@@ -151,10 +173,8 @@ export function createGameStore(deps: GameStoreDeps): StoreApi<GameStoreState> {
 					await adapter.cue({ uri: track.uri, startMs: 0 });
 					return mine === epoch ? "ready" : "stale";
 				} catch (error) {
+					// Not a leave, so a superseded cue means the device was taken over.
 					if (mine !== epoch) return "stale";
-					if (error instanceof PlaybackError && error.kind === "superseded") {
-						return "stale";
-					}
 					if (
 						!(error instanceof PlaybackError && error.kind === "cue-failed")
 					) {
@@ -173,8 +193,14 @@ export function createGameStore(deps: GameStoreDeps): StoreApi<GameStoreState> {
 			const game = createGame({ tracks, rounds, rng: newRng(), config });
 			const mine = ++epoch;
 			gate = "open";
+			gameTracks = tracks;
 			tracksById = new Map(tracks.map((track) => [track.id, track]));
-			enter("connecting", { game, revealed: null, skippedNotice: false });
+			enter("connecting", {
+				game,
+				revealed: null,
+				skippedNotice: false,
+				recovery: "idle",
+			});
 			try {
 				await adapter.connect({ volume: get().volume });
 			} catch (error) {
@@ -194,6 +220,20 @@ export function createGameStore(deps: GameStoreDeps): StoreApi<GameStoreState> {
 			await work.catch(() => undefined);
 			if (mine !== epoch) return;
 			gate = isSettled(adapter.getStatus()) ? "open" : "waiting";
+		}
+
+		async function countdown(mine: number): Promise<void> {
+			for (const shown of [2, 1, null] as const) {
+				await sleep(COUNTDOWN_TICK_MS);
+				if (mine !== epoch) return;
+				if (shown !== null) set({ countdown: shown });
+			}
+		}
+
+		async function openNextRound(mine: number): Promise<void> {
+			const [outcome] = await Promise.all([cueCurrent(mine), countdown(mine)]);
+			if (outcome === "stale" || mine !== epoch) return;
+			enter(outcome === "finished" ? "finished" : "round");
 		}
 
 		function act(action: RoundAction): void {
@@ -223,6 +263,8 @@ export function createGameStore(deps: GameStoreDeps): StoreApi<GameStoreState> {
 			revealed: null,
 			playback: PREPARING,
 			skippedNotice: false,
+			countdown: null,
+			recovery: "idle",
 			rounds: DEFAULT_ROUNDS,
 			volume: DEFAULT_VOLUME,
 
@@ -263,6 +305,51 @@ export function createGameStore(deps: GameStoreDeps): StoreApi<GameStoreState> {
 				act({ type: "giveUp" });
 			},
 
+			next() {
+				const { stage, game } = get();
+				if (stage !== "reveal" || game === null) return;
+				// Also drops the follow-up of the reveal that just ended.
+				const mine = ++epoch;
+				gate = "open";
+				const advanced = gameReducer(game, { type: "next" });
+				if (advanced.phase === "finished") {
+					enter("finished", { game: advanced });
+					void adapter.stop().catch(() => undefined);
+					return;
+				}
+				enter("countdown", {
+					game: advanced,
+					skippedNotice: false,
+					countdown: COUNTDOWN_FROM,
+				});
+				void openNextRound(mine);
+			},
+
+			async recover() {
+				const { playback, recovery } = get();
+				if (playback.kind !== "interrupted" || recovery === "working") return;
+				const mine = epoch;
+				set({ recovery: "working" });
+				try {
+					await adapter.recover();
+				} catch {
+					if (mine === epoch) set({ recovery: "failed" });
+					return;
+				}
+				if (mine !== epoch) return;
+				gate = "open";
+				set({ recovery: "idle" });
+			},
+
+			dismissNotice() {
+				if (get().skippedNotice) set({ skippedNotice: false });
+			},
+
+			async playAgain() {
+				if (get().stage !== "finished") return;
+				await begin(gameTracks);
+			},
+
 			leave() {
 				epoch++;
 				gate = "open";
@@ -271,6 +358,8 @@ export function createGameStore(deps: GameStoreDeps): StoreApi<GameStoreState> {
 					game: null,
 					revealed: null,
 					skippedNotice: false,
+					countdown: null,
+					recovery: "idle",
 					playback: PREPARING,
 				});
 				adapter.disconnect();

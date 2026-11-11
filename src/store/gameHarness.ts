@@ -49,13 +49,18 @@ export function makeTracks(count = 15): readonly PlaylistTrack[] {
 	});
 }
 
-export function createHarness(): GameHarness {
+/** `seeds[n]` seeds the n-th game's rng; the last one repeats. */
+export function createHarness(
+	options: { readonly seeds?: readonly number[] } = {},
+): GameHarness {
+	const { seeds = [SEED] } = options;
+	let games = 0;
 	const adapter = createFakeAdapter();
 	const startFailures: PlaybackError[] = [];
 	const sleeps: Array<{ ms: number; resolve: () => void }> = [];
 	const store = createGameStore({
 		adapter,
-		newRng: () => createRng(SEED),
+		newRng: () => createRng(seeds[Math.min(games++, seeds.length - 1)] ?? SEED),
 		sleep: (ms) =>
 			new Promise<void>((resolve) => {
 				sleeps.push({ ms, resolve });
