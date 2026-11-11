@@ -92,6 +92,21 @@ const violating: Fixture[] = [
 		expected: [GLOBALS],
 	},
 	{
+		path: "src/spotify/playback/engine.ts",
+		source: "export const x = new Spotify.Player({});\n",
+		expected: [GLOBALS],
+	},
+	{
+		path: "src/spotify/playback/engine-type.ts",
+		source: "export const p: Spotify.Player = make();\n",
+		expected: [GLOBALS],
+	},
+	{
+		path: "src/spotify/playback/engine-window.ts",
+		source: "export const x = window.Spotify;\n",
+		expected: [PLUGIN],
+	},
+	{
 		path: "src/store/ui-import.ts",
 		source: 'import { b } from "@/ui/b";\nexport const x = b;\n',
 		expected: [IMPORTS],
@@ -127,6 +142,21 @@ const clean: Fixture[] = [
 	{
 		path: "src/spotify/playback/sdk/x.ts",
 		source: "export const x = Spotify;\n",
+		expected: [],
+	},
+	{
+		path: "src/spotify/playback/sdk/transport.ts",
+		source: "export const x = new Spotify.Player({});\n",
+		expected: [],
+	},
+	{
+		path: "src/spotify/playback/sdk/transport-type.ts",
+		source: "export const p: Spotify.Player = make();\n",
+		expected: [],
+	},
+	{
+		path: "src/spotify/playback/sdk/transport-window.ts",
+		source: "export const x = window.Spotify;\n",
 		expected: [],
 	},
 	{
