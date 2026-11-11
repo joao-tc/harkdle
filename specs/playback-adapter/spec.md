@@ -2,7 +2,7 @@
 
 **Size:** Large (new shared contract between `spotify/`, `store/` and later `ui/`; the SDK-wrapper pattern; cue protocol from ADR-0001)
 **Sub-phase:** logic (no screen. The Round, Reveal and "Play here" UI are item 5)
-**Status:** Implemented, live check pending (V1–V5)
+**Status:** Done (live check V1–V5 recorded, with the open points listed under "Verified live")
 **Parent:** [specs/app-v1/ROADMAP.md](../app-v1/ROADMAP.md), item 3 (R6, R13, R14 detection, R18)
 **Branch:** `feat/3/playback-adapter` (from `main`)
 
@@ -102,7 +102,7 @@ Epic IDs are kept where this item delivers them. `B-` rows are this item's own.
 - [x] `tools/invariants.test.ts` proves `Spotify` is flagged outside `src/spotify/playback/sdk/**` (value, type position, `window.Spotify`) and not inside it.
 - [x] `createFakeAdapter` exists with its own test, ready for item 5.
 - [x] Nothing outside `src/spotify/` and the manifest changes, and nothing is wired into `main.tsx`.
-- [ ] **Verified live** (V1–V5 above) recorded in this spec by the owner after running the devtools script, with the mute fallback decided if V1 fails.
+- [x] **Verified live** (V1–V5 above) recorded in this spec by the owner after running the devtools script, with the mute fallback decided if V1 fails. The mute held (V1), so ADR-0003 stays Accepted and no fallback is needed.
 
 ## Implementation notes
 
@@ -119,12 +119,12 @@ Choices made while implementing, where the spec was silent. Each is pinned by a 
 
 ## Verified live
 
-Pending: run the V1–V5 script (kept out of the repo) and record the results here. If V1 fails, record the mute fallback and set ADR-0003 to Superseded before this item is Done.
+Run by the owner with the V1–V5 script (kept out of the repo). The mute held, so ADR-0003 stands. Open points the owner accepted when closing the item: V1 resume→first-position latency was not measured, and `recover()` from `interrupted (taken-over)` and the `device-lost` reconnect branch were not exercised live (the engine suite covers both on the fake transport).
 
 | # | Result | Notes |
 | - | ------ | ----- |
-| V1 | — | |
-| V2 | — | |
-| V3 | — | |
-| V4 | — | |
-| V5 | — | |
+| V1 | Partial | 5 × (cue, then a 1 s clip). Cues were silent (heard nothing before any clip), each 1 s clip was heard once, and the SDK volume read 0.6 after the first cue and after every run, so the mute holds and restores cleanly (B7, ADR-0003 stands). **Not measured:** resume→first-position latency. The script's metric needed a state with `paused=false` and a position above the start, and the SDK sent none during a 1 s clip (the position stays at `30000` until the pause), so it printed no numbers. The first `paused=false` event arrives ~3 ms after `resume()`, which looks like an echo, not audio onset. **Observed:** in every cue, `pause()` has no effect and the state keeps playing (position reaches ~31000) until the `pauseViaApi()` fallback stops it 1.5–2.3 s later, inaudible because of the mute. In 2 of 5 runs a stale `pos≈31470 paused=true` event followed `seek(30000)` and `seekViaApi(30000)` was needed to land on the start. |
+| V2 | Pass | Taken over by playing on an iPhone while the adapter was `ready`. The only signal was a `null` state (no `not_ready`, no foreign-track state), and the adapter set `interrupted (taken-over)` immediately and held it for the remaining ~50 s. Run was muddied: AirPods auto-switching from the iPhone to the Mac sent a play and pause to the browser device 2 s before the takeover (a ~0.8 s audible blip, no `CMD` logged, status stayed `ready`), so an external pause/resume on the device does not change the adapter's status. `recover()` from `interrupted (taken-over)` was not tried (still open, see V3). |
+| V3 | Partial | Wifi off 5 s mid-clip: no event, clip ended normally. Wifi off ~50 s while `ready`: no `not_ready`, status stayed `ready`, SDK reconnected on its own. Cue while offline: `cue-failed` (token refresh failed), status `idle`. `recover()` from `idle` is a no-op by design. Still to check: `recover()` from `interrupted (taken-over)`, via V2. The `device-lost` reconnect branch could not be triggered with wifi. |
+| V4 | Pass (timing not measured) | Switching tabs mid-clip stopped the audio (B8, R14). Switching tabs mid-reveal did not interrupt the audio. **Not checked:** the stop latency against the one-frame target, the `hidden` outcome and return to `ready`, a Play queued while hidden, and hiding by minimizing. |
+| V5 | Pass | `setVolume` mid-reveal changed the audible level with no gap (R18). Reported as clean by the tester. **Not recorded:** clamping at the extremes, the volume restored after a later cue, and a `setVolume` call during a cue's mute. |

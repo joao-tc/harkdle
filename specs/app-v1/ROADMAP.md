@@ -131,7 +131,7 @@ Each item is its own `specs/<item>/` folder planned through feature-dev, and non
 | 0 | **Foundation** | Large | single | — | A fresh branch from `main`; cherry-pick the findings and ADR; ADR-0001 → Accepted (router removed); fill the feature-dev profile, gates and invariants; Vite + React + Tailwind + shadcn + Zustand + Query + Biome (with import rules); fold A6–A12, A21 into game-design.md. **Real code:** PKCE auth ported from the spike, plus the Login and Setup-error screens (R1). |
 | 1 | **Game engine** | Large | logic | 0 | `src/game/`: config, normalization and matching, scoring, round reducer, X Tracks game reducer (R5, R7–R10, R12 data). Fully unit-tested. |
 | 2 | **Playlist loading** | Medium | logic + visual | 0 | Playlist list, item fetch, cleaning, suggestion index, Picker screen (R2–R4). **Implemented**: logic half ([specs/playlist-loading-logic](../playlist-loading-logic/spec.md)) and visual half ([specs/playlist-loading-visual](../playlist-loading-visual/spec.md)). |
-| 3 | **Playback adapter** | Large | logic | 0 | `PlaybackAdapter` extracted from the spike (T9) with cue/play/stop, interruption events, volume. A fake adapter for tests (R6, R13, R14 detection, R18). **Implemented, live check pending**: [specs/playback-adapter](../playback-adapter/spec.md). |
+| 3 | **Playback adapter** | Large | logic | 0 | `PlaybackAdapter` extracted from the spike (T9) with cue/play/stop, interruption events, volume. A fake adapter for tests (R6, R13, R14 detection, R18). **Done**: [specs/playback-adapter](../playback-adapter/spec.md). |
 | 4 | **Deploy** | Medium | single | 0 | The Pages workflow, base path, second redirect URI (R19). Early, so the redirect works before there's a game to break. |
 | 5 | **Game loop UI (M1)** | Large | visual | 1, 2, 3 | Game store wiring the engine to the adapter; Setup, Round, Reveal, Results screens; shortcuts; leave-page guard; Play here overlay (R6, R11–R15, R17). |
 | 6 | **Settings persistence** | Medium | logic | 5 | Versioned settings store (R16, R18). |
@@ -147,7 +147,7 @@ Items 1, 2, 3 and 4 have disjoint layers and can run as parallel waves once 0 la
 
 - How `/me` reports Premium vs Lite/Mini (`product` values), and what a non-allowlisted user gets back (expected 403). This matters for item 0, R1. The SDK `account_error` is the fallback signal.
 - Spotify Design Guidelines on attribution, logo and linking back to the track, for item 5's Reveal screen.
-- Whether the SDK honours `setVolume` under the cued flow without disturbing cue timing (item 3).
+- ~~Whether the SDK honours `setVolume` under the cued flow without disturbing cue timing (item 3).~~ Checked live: the mute holds and restores cleanly (ADR-0003). Resume→first-position latency was not measured.
 - The edge-case playlist was run in the Picker on 2026-11-10 and its removal counts matched (P16). Still unseen live: a collaborative playlist, a null item and a 429.
 
 ## Done when (v1 = M1 + M2)

@@ -1,7 +1,7 @@
 # Playback adapter — tasks
 
 **Spec:** [spec.md](spec.md) · **Design:** [design.md](design.md)
-**Status:** Implemented (T1–T14 done and gated; T15 live check pending)
+**Status:** Done (T1–T15 done; live check recorded in the spec)
 
 ## Execution plan
 
@@ -365,6 +365,6 @@ Every subagent brief carries: the task block, the design's signatures for its fi
 
 **Done when:**
 - [x] Wave gate clean: `npm run lint`, `npm run typecheck`, `npm test`, `npm test -- tools/invariants`, `npm run build`.
-- [ ] V1-V5 recorded by the owner, or this item stays "Implemented, live check pending".
+- [x] V1-V5 recorded by the owner.
 
 **Verify:** `npm run lint && npm run typecheck && npm test && npm run build`
