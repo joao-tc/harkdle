@@ -2,9 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 import type { AccountResult, AccountUser } from "@/spotify/account";
 import type { Auth } from "@/spotify/auth";
 import type { PlaylistSummary, PlaylistsClient } from "@/spotify/playlists";
+import { createHarness } from "./gameHarness";
 import { createPlaylistsStore } from "./playlists";
 import { createSessionStore, type SessionDeps } from "./session";
-import { connectPlaylistsToSession, signedInUserId } from "./wiring";
+import {
+	connectGameToSession,
+	connectPlaylistsToSession,
+	signedInUserId,
+} from "./wiring";
 
 const user: AccountUser = {
 	id: "u1",
@@ -191,5 +196,69 @@ describe("connectPlaylistsToSession", () => {
 		session.getState().logout();
 		expect(playlists.getState().selection.status).toBe("ready");
 		expect(playlists.getState().list.status).toBe("ready");
+	});
+});
+
+describe("connectGameToSession", () => {
+	async function gameWired() {
+		const session = sessionStore();
+		await session.getState().boot();
+		const harness = createHarness();
+		const leave = vi.spyOn(harness.store.getState(), "leave");
+		const unsubscribe = connectGameToSession(session, harness.store);
+		return { session, harness, leave, unsubscribe };
+	}
+
+	it("leaves the game on logout from setup", async () => {
+		const { session, leave } = await gameWired();
+		session.getState().toSetup();
+		session.getState().logout();
+		expect(leave).toHaveBeenCalledTimes(1);
+	});
+
+	it("leaves the game on expire from setup", async () => {
+		const { session, leave } = await gameWired();
+		session.getState().toSetup();
+		session.getState().expire();
+		expect(leave).toHaveBeenCalledTimes(1);
+	});
+
+	it("leaves the game on toPicker from setup", async () => {
+		const { session, leave } = await gameWired();
+		session.getState().toSetup();
+		session.getState().toPicker();
+		expect(session.getState().screen.name).toBe("signed-in");
+		expect(leave).toHaveBeenCalledTimes(1);
+	});
+
+	it("resets a started game and disconnects the player", async () => {
+		const { session, harness } = await gameWired();
+		session.getState().toSetup();
+		await harness.store.getState().start(harness.tracks);
+		expect(harness.store.getState().stage).not.toBe("idle");
+		session.getState().toPicker();
+		expect(harness.store.getState().stage).toBe("idle");
+		expect(harness.calls("disconnect")).toHaveLength(1);
+	});
+
+	it("does not leave when moving into setup", async () => {
+		const { session, leave } = await gameWired();
+		session.getState().toSetup();
+		expect(leave).not.toHaveBeenCalled();
+	});
+
+	it("does not leave on transitions that do not start in setup", async () => {
+		const { session, leave } = await gameWired();
+		session.getState().expire();
+		session.getState().logout();
+		expect(leave).not.toHaveBeenCalled();
+	});
+
+	it("stops leaving once unsubscribed", async () => {
+		const { session, leave, unsubscribe } = await gameWired();
+		session.getState().toSetup();
+		unsubscribe();
+		session.getState().logout();
+		expect(leave).not.toHaveBeenCalled();
 	});
 });
