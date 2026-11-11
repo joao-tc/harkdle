@@ -2,6 +2,7 @@ import type { StoreApi } from "zustand/vanilla";
 import { createStore } from "zustand/vanilla";
 import type { AccountResult, AccountUser } from "@/spotify/account";
 import type { Auth } from "@/spotify/auth";
+import type { PlaybackErrorKind } from "@/spotify/playback/adapter";
 
 // The ui layer may not import from spotify, so it gets this type from here.
 export type { AccountUser } from "@/spotify/account";
@@ -14,7 +15,7 @@ export type SetupErrorKind =
 	| "wrong-origin"
 	| "missing-config"
 	| "sdk-account"
-	| "sdk-init"; // the last two are produced by a later item
+	| "sdk-init"; // the last two come from playerFailed
 
 export type Screen =
 	| { name: "booting" }
@@ -38,6 +39,10 @@ export interface SessionState {
 	retry(): Promise<void>;
 	logout(): void;
 	expire(): void; // the token stopped working mid-session: show the session-expired screen
+	playerFailed(failure: {
+		readonly kind: PlaybackErrorKind;
+		readonly message: string;
+	}): void; // the player failed: show it as a Setup error
 	toSetup(): void; // Picker -> Setup; no-op from any other screen
 	toPicker(): void; // Setup -> Picker; no-op from any other screen
 }
@@ -140,6 +145,18 @@ export function createSessionStore(deps: SessionDeps): StoreApi<SessionState> {
 
 			expire() {
 				show({ name: "setup-error", error: "session-expired" });
+			},
+
+			playerFailed({ kind, message }) {
+				if (kind === "authentication") {
+					get().expire();
+					return;
+				}
+				show({
+					name: "setup-error",
+					error: kind === "account" ? "sdk-account" : "sdk-init",
+					detail: message,
+				});
 			},
 
 			toSetup() {

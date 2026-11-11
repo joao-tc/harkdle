@@ -391,6 +391,60 @@ describe("login and logout", () => {
 	});
 });
 
+describe("playerFailed", () => {
+	it("account shows sdk-account with the message", async () => {
+		const store = createSessionStore(harness().deps);
+		await store.getState().boot();
+		store.getState().playerFailed({ kind: "account", message: "no premium" });
+		expect(store.getState().screen).toEqual({
+			name: "setup-error",
+			error: "sdk-account",
+			detail: "no premium",
+		});
+	});
+
+	it("authentication does the same as expire()", async () => {
+		const store = createSessionStore(harness().deps);
+		await store.getState().boot();
+		store.getState().playerFailed({ kind: "authentication", message: "401" });
+		expect(store.getState().screen).toEqual({
+			name: "setup-error",
+			error: "session-expired",
+		});
+	});
+
+	it.each([
+		"initialization",
+		"sdk-load",
+		"device-lost",
+		"cue-failed",
+		"not-connected",
+		"superseded",
+	] as const)("%s shows sdk-init with the message", async (kind) => {
+		const store = createSessionStore(harness().deps);
+		await store.getState().boot();
+		store.getState().playerFailed({ kind, message: "boom" });
+		expect(store.getState().screen).toEqual({
+			name: "setup-error",
+			error: "sdk-init",
+			detail: "boom",
+		});
+	});
+
+	it.each(["account", "initialization"] as const)(
+		"retry() after a %s failure re-checks and lands on signed-in",
+		async (kind) => {
+			const h = harness();
+			const store = createSessionStore(h.deps);
+			await store.getState().boot();
+			store.getState().playerFailed({ kind, message: "boom" });
+			await store.getState().retry();
+			expect(h.calls.checkAccount).toBe(2);
+			expect(store.getState().screen).toEqual({ name: "signed-in", user });
+		},
+	);
+});
+
 describe("setup screen", () => {
 	async function signedIn() {
 		const h = harness();
