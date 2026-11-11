@@ -1,7 +1,7 @@
 # Game loop (logic) — tasks
 
 **Spec:** [spec.md](spec.md) · **Design:** [design.md](design.md)
-**Status:** Draft
+**Status:** Done
 
 ## Execution plan
 
@@ -16,6 +16,15 @@
 Every `Verify` is `npm test -- <path>` plus `npx biome check <own files>`. Subagents never run `npm run dev`, `npm run build` or the full suite, and never edit `package.json`, `biome.json`, `main.tsx`, `App.tsx` or any file they do not own. After each wave the orchestrator runs `npm run lint` → `npm run typecheck` → `npm test` → `npm test -- tools/invariants`, plus `npm run build` after waves 2 and 3.
 
 Every brief carries: the task block, the design's signatures for its files (pasted, not linked), the spec rows it serves, the invariants (1–5), [coding-principles](../../.claude/skills/feature-dev/references/coding-principles.md), and the rule that tests use `createFakeAdapter`, a manual `sleep` and a seeded `createRng`, never a real timer or network.
+
+## Result
+
+T1–T10 are done. As built, against the plan:
+
+- T7 also edited `gameHarness.ts` (an optional `seeds` option, so `playAgain` can prove a different queue order). Table C is updated.
+- A cue pending when the device is taken over rejects `superseded` with the store's epoch unchanged (the engine bumps its generation on every interruption). The store treats that as a frozen round, not a stale one, so neither `start` nor the countdown can hang. A `leave` still stops all work.
+- In the countdown the display is 3, then 2 after tick one, then 1 after tick two; the third tick only releases it, so three `tick()` calls open the round. If every remaining track fails to cue, the store still waits for the three ticks before it enters `finished`.
+- `createFakeAdapter.failNextCue(device-lost)` leaves its status `idle`, not `interrupted` as the real engine does, so the countdown `device-lost` test asserts the stage and the kept track, and the `interrupted` view is asserted by the interrupt-during-held-cue tests.
 
 ## Validation
 
@@ -57,7 +66,7 @@ Every brief carries: the task block, the design's signatures for its files (past
 | 1 | T3 | store | `src/store/shortcuts.ts`, `src/store/shortcuts.test.ts` | — |
 | 1 | T5 | store | `src/store/session.ts`, `src/store/session.test.ts` | — |
 | 2 | T6 | store | `src/store/game.ts`, `src/store/gameHarness.ts`, `src/store/game.round.test.ts` | — |
-| 3 | T7 | store | `src/store/game.ts`, `src/store/game.flow.test.ts` | — (T6 is in wave 2) |
+| 3 | T7 | store | `src/store/game.ts`, `src/store/game.flow.test.ts`, `src/store/gameHarness.ts` (optional `seeds`, backward-compatible) | — (T6 is in wave 2) |
 | 3 | T8 | store | `src/store/wiring.ts`, `src/store/wiring.test.ts` | — |
 | 3 | T9 | store | `src/store/leaveGuard.ts`, `src/store/leaveGuard.test.ts` | — |
 | 4 | T10 | docs | `specs/game-loop-logic/*`, `specs/app-v1/ROADMAP.md` | — |

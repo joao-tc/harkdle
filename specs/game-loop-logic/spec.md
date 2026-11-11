@@ -2,7 +2,7 @@
 
 **Size:** Large
 **Sub-phase:** logic (roadmap item 5, first half. The screens are `specs/game-loop-visual/`, planned once this is merged and green.)
-**Status:** Draft
+**Status:** Done
 
 ## Problem
 
@@ -84,7 +84,7 @@ G2, G3, G5, G11 (the notice's wording and dismiss), G15 (no overlay off the Roun
 
 ## Done when
 
-- [ ] `npm run lint`, `npm run typecheck` and `npm test` are green, and `npm test -- tools/invariants` still passes.
-- [ ] The store's tests drive a whole 5-round game, plus each of G-2, G-5, G-8–G-10, G-12 and G-15, against `createFakeAdapter`, with a controllable `sleep` and a seeded `newRng`. No test uses a real timer.
-- [ ] No file outside the listed ones changed, and `src/main.tsx` is untouched.
-- [ ] No browser gate: there is no surface here. The first real-adapter run is the visual half's gate.
+- [x] `npm run lint`, `npm run typecheck` and `npm test` are green, and `npm test -- tools/invariants` still passes.
+- [x] The store's tests drive a whole 5-round game, plus each of G-2, G-5, G-8–G-10, G-12 and G-15, against `createFakeAdapter`, with a controllable `sleep` and a seeded `newRng`. No test uses a real timer.
+- [x] No file outside the listed ones changed, and `src/main.tsx` is untouched.
+- [x] No browser gate: there is no surface here. The first real-adapter run is the visual half's gate.
