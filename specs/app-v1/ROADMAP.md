@@ -137,7 +137,7 @@ Each item is its own `specs/<item>/` folder planned through feature-dev, and non
 | 5b | **Game loop (visual)** | Large | visual | 5a | `main.tsx` wiring (real adapter); Setup, Round, Reveal, Results screens; key handler; `beforeunload` registration; Play here overlay (R6, R11–R15, R17). **Implemented**: [specs/game-loop-visual](../game-loop-visual/spec.md); the live check and sign-off are pending. |
 | 6 | **Settings persistence** | Medium | logic | 5b | Versioned settings store (R16, R18). **Implemented**: [specs/settings-persistence](../settings-persistence/spec.md); the live check is pending. |
 | — | *M1 playtest with friends: tune clip lengths and points in config* | | | 4, 5b, 6 | |
-| 7a | **Random start + rerolls (logic)** | Large | logic | M1 | Start-point window and draws, reroll budget and penalty in the game reducer, the store cueing `startMs` and `reroll()`, ⌥R mapping (R20, R21). **Planned**: [specs/random-start-logic](../random-start-logic/spec.md). |
+| 7a | **Random start + rerolls (logic)** | Large | logic | M1 | Start-point window and draws, reroll budget and penalty in the game reducer, the store cueing `startMs` and `reroll()`, ⌥R mapping (R20, R21). **Implemented**: [specs/random-start-logic](../random-start-logic/spec.md); headless, so no live check. The start type is not persisted yet (S13). |
 | 7b | **Random start + rerolls (visual)** | Medium | visual | 7a | Setup's Random toggle, the Reroll button with its cost label, the failed-reroll notice, the ⌥R key handler, Reveal rows. Planned once 7a is merged and green. |
 | 8 | **Endless (M2)** | Medium | logic + visual | M1 | R22. |
 

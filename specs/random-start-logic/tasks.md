@@ -1,7 +1,7 @@
 # Random start + rerolls (logic) — tasks
 
 **Spec:** [spec.md](spec.md) · **Design:** [design.md](design.md)
-**Status:** Draft
+**Status:** T1–T7 done
 
 ## Execution plan
 
@@ -74,10 +74,10 @@ Every brief carries: the task block, the design's signatures for its files (past
 **Invariants:** 1, 2: imports only `config` and `rng`; every draw takes the injected `Rng`.
 
 **Done when:**
-- [ ] `startWindow` is null at 19 999 ms, a single point at 20 000 ms, and `[⌈0.1·len⌉, len − 18000]` above
-- [ ] `drawStart` always lands inside the window, is repeatable for a seed, and returns `CLASSIC_START` for a null window without calling the rng
-- [ ] `canReroll` and `drawReroll` honour the 8 s spacing on both sides, including a start exactly at the window edge and a window just under and just over 8 s wide
-- [ ] Tests written and passing; invariant check clean
+- [x] `startWindow` is null at 19 999 ms, a single point at 20 000 ms, and `[⌈0.1·len⌉, len − 18000]` above
+- [x] `drawStart` always lands inside the window, is repeatable for a seed, and returns `CLASSIC_START` for a null window without calling the rng
+- [x] `canReroll` and `drawReroll` honour the 8 s spacing on both sides, including a start exactly at the window edge and a window just under and just over 8 s wide
+- [x] Tests written and passing; invariant check clean
 
 **Verify:** `npm test -- src/game/start src/game/config` and `npx biome check src/game/config.ts src/game/config.test.ts src/game/start.ts src/game/start.test.ts`
 
@@ -93,8 +93,8 @@ Every brief carries: the task block, the design's signatures for its files (past
 **Invariants:** 3: `spotify` may import `game`.
 
 **Done when:**
-- [ ] `PlaylistTrack` is unchanged for every consumer
-- [ ] No other file needed an edit
+- [x] `PlaylistTrack` is unchanged for every consumer
+- [x] No other file needed an edit
 
 **Verify:** `npm run typecheck && npm test -- src/spotify/clean`
 
@@ -110,8 +110,8 @@ Every brief carries: the task block, the design's signatures for its files (past
 **Invariants:** 3: no React.
 
 **Done when:**
-- [ ] ⌥R returns `reroll`; ⌘/Ctrl/Shift+⌥R and a repeat return `null`
-- [ ] The existing Space and S cases still pass
+- [x] ⌥R returns `reroll`; ⌘/Ctrl/Shift+⌥R and a repeat return `null`
+- [x] The existing Space and S cases still pass
 
 **Verify:** `npm test -- src/store/shortcuts` and `npx biome check src/store/shortcuts.ts src/store/shortcuts.test.ts`
 
@@ -127,10 +127,10 @@ Every brief carries: the task block, the design's signatures for its files (past
 **Invariants:** 1, 2.
 
 **Done when:**
-- [ ] `startRound(track)` gives `startMs: 0`, `window: null`, `paidRerolls: 0`
-- [ ] `startRound(track, start)` keeps `start`
-- [ ] Submit, skip and give-up leave all three fields untouched
-- [ ] All existing round tests pass unchanged
+- [x] `startRound(track)` gives `startMs: 0`, `window: null`, `paidRerolls: 0`
+- [x] `startRound(track, start)` keeps `start`
+- [x] Submit, skip and give-up leave all three fields untouched
+- [x] All existing round tests pass unchanged
 
 **Verify:** `npm test -- src/game/round` and `npx biome check src/game/round.ts src/game/round.test.ts`
 
@@ -146,12 +146,12 @@ Every brief carries: the task block, the design's signatures for its files (past
 **Invariants:** 1, 2: the only randomness is the injected `rng`; Classic draws nothing after the shuffle.
 
 **Done when:**
-- [ ] A Classic game with a fixed seed gives the same queue and totals as before this change
-- [ ] A Random game's round starts are inside their windows, a short track starts at 0 with no reroll, and its score still gets ×1.25 (S4)
-- [ ] Rerolls 1–3 are free; the 4th and later add to that round's `paidRerolls`; the multiplier floors at 0.5; the budget carries across rounds and resets in a new game
-- [ ] A reroll keeps the step and locks, and returns the same state when it cannot apply (Classic, no spot, ended, reveal, finished)
-- [ ] `trackFailed` draws a fresh start and spends nothing
-- [ ] `rerollStatus` matches each of those states
+- [x] A Classic game with a fixed seed gives the same queue and totals as before this change
+- [x] A Random game's round starts are inside their windows, a short track starts at 0 with no reroll, and its score still gets ×1.25 (S4)
+- [x] Rerolls 1–3 are free; the 4th and later add to that round's `paidRerolls`; the multiplier floors at 0.5; the budget carries across rounds and resets in a new game
+- [x] A reroll keeps the step and locks, and returns the same state when it cannot apply (Classic, no spot, ended, reveal, finished)
+- [x] `trackFailed` draws a fresh start and spends nothing
+- [x] `rerollStatus` matches each of those states
 
 **Verify:** `npm test -- src/game src/ui/game/feedback` and `npx biome check` on the four owned files
 
@@ -167,13 +167,13 @@ Every brief carries: the task block, the design's signatures for its files (past
 **Invariants:** 3, 5: no React, no SDK types; talks to `PlaybackAdapter` only.
 
 **Done when:**
-- [ ] Round 1, each next round and each replacement cue with the drawn `startMs`; Classic still cues 0
-- [ ] A reroll cues the new start, keeps the step, and stops a playing clip
-- [ ] S6: a `cue-failed` restores the game and re-cues the old start with the notice; a second `cue-failed` skips the track with the existing notice; the free budget is untouched
-- [ ] S7: an interruption mid-cue keeps the reroll and freezes the round
-- [ ] A second `reroll()` before the adapter settles is ignored; ignored too in Classic, on the Reveal, while frozen, and after `leave`
-- [ ] `playAgain` keeps `startMode` and resets the budget
-- [ ] Every existing store test passes unchanged
+- [x] Round 1, each next round and each replacement cue with the drawn `startMs`; Classic still cues 0
+- [x] A reroll cues the new start, keeps the step, and stops a playing clip
+- [x] S6: a `cue-failed` restores the game and re-cues the old start with the notice; a second `cue-failed` skips the track with the existing notice; the free budget is untouched
+- [x] S7: an interruption mid-cue keeps the reroll and freezes the round
+- [x] A second `reroll()` before the adapter settles is ignored; ignored too in Classic, on the Reveal, while frozen, and after `leave`
+- [x] `playAgain` keeps `startMode` and resets the budget
+- [x] Every existing store test passes unchanged
 
 **Verify:** `npm test -- src/store` and `npx biome check src/store/game.ts src/store/game.reroll.test.ts`
 
@@ -186,6 +186,6 @@ Every brief carries: the task block, the design's signatures for its files (past
 **Do:** In game-design.md add the 8 s spacing (Rerolling section and the Tunable Parameters table), the failed-reroll behaviour, and "×1.25 applies to every round of a Random game, including a 0:00 fallback round". Mark the spec, design and tasks Done, add a Result section for any deviation, and point ROADMAP 7a at this folder.
 
 **Done when:**
-- [ ] `npm run lint`, `npm run typecheck`, `npm test`, `npm test -- tools/invariants` and `npm run build` are green
+- [x] `npm run lint`, `npm run typecheck`, `npm test`, `npm test -- tools/invariants` and `npm run build` are green
 
 **Verify:** the gate commands above.

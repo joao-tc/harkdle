@@ -1,6 +1,6 @@
 # Random start + rerolls (logic) — design
 
-**Spec:** [spec.md](spec.md) · **Status:** Draft
+**Spec:** [spec.md](spec.md) · **Status:** Implemented
 **ADR:** none. Nothing here is expensive to reverse; D2 and D3 are recorded below so the next reader knows why.
 
 ## Decisions

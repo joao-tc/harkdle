@@ -2,7 +2,7 @@
 
 **Size:** Large
 **Sub-phase:** logic (roadmap item 7, first half. The screens are `specs/random-start-visual/`, planned once this is merged and green.)
-**Status:** Draft
+**Status:** Implemented (logic only; no surface, no live check needed)
 
 ## Problem
 
@@ -70,7 +70,17 @@ Category sweep: scope ✅ (S1, S14, out of scope below) · rules ✅ (S2–S4, S
 
 ## Done when
 
-- [ ] `npm run lint`, `npm run typecheck`, `npm test` and `npm test -- tools/invariants` are green.
-- [ ] The new tests use a seeded `createRng` and the fake adapter, never a real timer. They cover the window boundaries (both sides of the 10% and 18 s edges), the fallback, determinism of one seed, Classic unchanged for a fixed seed, 3 free then paid, the 50% floor, an unchanged step and locks, the 8 s spacing, the store's cue arguments, S6, S7 and the mash guard.
-- [ ] No browser gate (no surface). The first run of a non-zero start with the real adapter belongs to the visual half's live check.
-- [ ] **Prerequisite (ROADMAP):** item 7 starts only after the M1 items it names (4, 5b, 6) are merged and green.
+- [x] `npm run lint`, `npm run typecheck`, `npm test` and `npm test -- tools/invariants` are green.
+- [x] The new tests use a seeded `createRng` and the fake adapter, never a real timer. They cover the window boundaries (both sides of the 10% and 18 s edges), the fallback, determinism of one seed, Classic unchanged for a fixed seed, 3 free then paid, the 50% floor, an unchanged step and locks, the 8 s spacing, the store's cue arguments, S6, S7 and the mash guard.
+- [x] No browser gate (no surface). The first run of a non-zero start with the real adapter belongs to the visual half's live check.
+- [x] **Prerequisite (ROADMAP):** item 7 starts only after the M1 items it names (4, 5b, 6) are merged and green.
+
+## Result
+
+All of RS-1 to RS-12 are implemented and covered by tests; the gate is green (lint, typecheck, 1303 tests, invariants, build). Deviations from the plan:
+
+- **Hook guard.** Mapping ⌥R in `shortcutFor` made `useGameShortcuts` (a `ui/` file) treat it as Skip, because the hook sent every non-play action to `skip()`. T3 also changed that hook to skip only on `skip`, so ⌥R is swallowed and does nothing until `random-start-visual` wires it. The "ignores other ⌥ combinations" test lost its ⌥R line, and a new test pins "⌥R is swallowed".
+- **`rng` in `GameState`.** The state now holds a function (D2), so the serialisation check in `game.test.ts` and the replay equality in `replay.test.ts` compare states without `rng`; the replay test also checks both RNGs give the same next value. Pinned round-shape tests (`round.test.ts`, `game.test.ts`) were extended with the new fields, not loosened.
+- **Float edge.** `startWindow` subtracts an epsilon before `Math.ceil`, so `0.1 * 70` does not round up to 8.
+- **Both notices.** If the old start's re-cue also fails, `rerollNotice` and `skippedNotice` are both true. The visual half decides which to show.
+- **Not persisted.** The start type is not saved with the settings (S13). Item 6 landed first, so the visual half, or a follow-up, has to add it to the settings and `connectSettingsToGame`.
