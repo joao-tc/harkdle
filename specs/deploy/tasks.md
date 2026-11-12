@@ -1,7 +1,7 @@
 # Deploy — tasks
 
 **Spec:** [spec.md](spec.md) · **Design:** none (no architectural decision; ADR-0001 already covers Pages)
-**Status:** Draft
+**Status:** Implemented (T1–T3 done; first deploy from `stage` ran green; live check pending)
 
 ## Execution plan
 
@@ -77,7 +77,7 @@ No wave-1 task writes `package.json` or the lockfile: the plan adds no dependenc
 **Owns:** `.github/workflows/deploy.yml`
 **Reads:** `package.json` (script names), `specs/deploy/spec.md` (A3, A5, A6, D1–D7)
 
-**Do:** Write one workflow with triggers `push` to `main` and `workflow_dispatch`, a `build` job (checkout, Node with npm cache, `npm ci`, a step that fails with a message naming `VITE_SPOTIFY_CLIENT_ID` if `vars.VITE_SPOTIFY_CLIENT_ID` is empty, `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`, upload the Pages artifact from `dist`), and a `deploy` job that needs `build`, targets the `github-pages` environment and uses `actions/deploy-pages`.
+**Do:** Write one workflow with triggers `push` to `stage` (changed from `main`, spec A8) and `workflow_dispatch`, a `build` job (checkout, Node with npm cache, `npm ci`, a step that fails with a message naming `VITE_SPOTIFY_CLIENT_ID` if `vars.VITE_SPOTIFY_CLIENT_ID` is empty, `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`, upload the Pages artifact from `dist`), and a `deploy` job that needs `build`, targets the `github-pages` environment and uses `actions/deploy-pages`.
 
 **Invariants:** none apply to `src/`. Workflow-level `permissions` are exactly `contents: read`, `pages: write`, `id-token: write` (D6), and the concurrency group is `pages` with `cancel-in-progress: false` (D5). The variable goes to the build step only through `env`, never echoed.
 

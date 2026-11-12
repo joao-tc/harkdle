@@ -2,13 +2,13 @@
 
 **Size:** Medium
 **Sub-phase:** single
-**Status:** Draft
+**Status:** Implemented — deployed from `stage`; the live login check and the gate-block proof are pending
 
 Roadmap item 4 of [app-v1](../app-v1/ROADMAP.md). Realises R19 and ADR-0001's hosting choice. No new ADR: GitHub Pages, no routing and PKCE without a secret are already decided.
 
 ## Problem
 
-The game only runs on `http://127.0.0.1:5173`. Friends can't play it until `main` is built and published to GitHub Pages and Spotify accepts the Pages URL as a redirect URI. Spotify's Development Mode (as of February 2026) caps the app at **5 authorized users**, so the deploy is for the owner and up to 4 friends (A3 in the roadmap). Opening it to everyone would need Extended Quota Mode, which is out of reach for now.
+The game only runs on `http://127.0.0.1:5173`. Friends can't play it until the site is built and published to GitHub Pages and Spotify accepts the Pages URL as a redirect URI. Spotify's Development Mode (as of February 2026) caps the app at **5 authorized users**, so the deploy is for the owner and up to 4 friends (A3 in the roadmap). Opening it to everyone would need Extended Quota Mode, which is out of reach for now.
 
 ## Ambiguity ledger
 
@@ -19,8 +19,9 @@ The game only runs on `http://127.0.0.1:5173`. Friends can't play it until `main
 | A3 | What does CI run before publishing? | Resolved | `typecheck`, `lint`, `test`, then `build`. The deploy job runs only if all four pass. |
 | A4 | 107 commits carry the owner's personal Gmail address, which a public repo exposes. | Resolved | Accept it. No history rewrite. |
 | A5 | Where does the client ID live in CI? | Resolved | An Actions **repository variable** named `VITE_SPOTIFY_CLIENT_ID`, not a secret. The build fails early if it is empty. |
-| A6 | Do pull requests also run the gate? | Resolved | No. Deploys from `main` only. A PR-check workflow is deferred. |
+| A6 | Do pull requests also run the gate? | Resolved | No. Deploys from `stage` only (A8). A PR-check workflow is deferred. |
 | A7 | Who is allowed to play? | Resolved (roadmap A3) | The owner plus up to 4 friends in the Spotify dashboard's User Management, each with Premium. |
+| A8 | Which branch deploys? | Resolved | **`stage`**, not `main`. `main` keeps merging as normal and `stage` is promoted when a change should go live. The `github-pages` environment must allow `stage` (Settings → Environments → `github-pages`), since it only allows the default branch at first. |
 
 **Open: 0**
 
@@ -30,7 +31,7 @@ Category sweep: scope ✅ (Out of scope) · rules ✅ (n/a, no game rules) · la
 
 | ID | Requirement | Priority |
 | -- | ----------- | -------- |
-| D1 | WHEN a commit lands on `main` THEN the workflow SHALL run typecheck, lint and test, then build, and SHALL deploy to Pages only if all four pass. | P1 |
+| D1 | WHEN a commit lands on `stage` THEN the workflow SHALL run typecheck, lint and test, then build, and SHALL deploy to Pages only if all four pass. | P1 |
 | D2 | WHEN CI builds THEN it SHALL inject `VITE_SPOTIFY_CLIENT_ID` from the repository variable, and SHALL fail before building, with a message naming the variable, if it is empty. | P1 |
 | D3 | WHEN the app is built for production THEN every asset URL SHALL be under `/harkdle/`. `npm run dev` SHALL keep serving from `/` at `http://127.0.0.1:5173`. | P1 |
 | D4 | WHEN a player logs in at `https://joao-tc.github.io/harkdle/` THEN the redirect URI sent to Spotify SHALL be exactly that URL, and login SHALL complete and land on the picker. (R19) | P1 |
@@ -65,7 +66,7 @@ Category sweep: scope ✅ (Out of scope) · rules ✅ (n/a, no game rules) · la
 ## Done when
 
 - [ ] `npm run typecheck`, `npm run lint` and `npm test` are green locally with no `.env`, and `VITE_SPOTIFY_CLIENT_ID=x npm run build` writes a `dist/index.html` whose asset URLs all start with `/harkdle/` (D3).
-- [ ] A push to `main` runs the workflow green end to end and publishes `https://joao-tc.github.io/harkdle/` (D1, D2, D5, D6).
+- [x] A push to `stage` runs the workflow green end to end and publishes `https://joao-tc.github.io/harkdle/` (D1, D2, D5, D6).
 - [ ] In desktop Chrome on the Pages URL, the owner logs in and reaches the picker (D4).
 - [ ] An allowlisted friend logs in and reaches the picker, and an account that is not on the list sees the allowlist screen (D9). This also counts toward the roadmap's "every Setup error screen reached" box.
 - [ ] A forced failure of the gate (or an emptied variable) is shown to block the deploy once (D1, D2).
