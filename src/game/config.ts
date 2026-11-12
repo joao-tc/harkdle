@@ -11,6 +11,10 @@ export interface GameConfig {
 	readonly randomStartMultiplier: number; // 1.25
 	readonly rerollPenalty: number; // 0.1 per paid reroll
 	readonly rerollPenaltyFloor: number; // 0.5
+	readonly startMinRatio: number; // 0.1 of the length: the earliest start
+	readonly startTailMs: number; // 18000: 16 s longest clip + 2 s margin kept after the start
+	readonly freeRerolls: number; // 3 per game
+	readonly rerollMinDistanceMs: number; // 8000: a reroll lands at least this far from the current start
 }
 
 export const DEFAULT_CONFIG: GameConfig = {
@@ -24,4 +28,8 @@ export const DEFAULT_CONFIG: GameConfig = {
 	randomStartMultiplier: 1.25,
 	rerollPenalty: 0.1,
 	rerollPenaltyFloor: 0.5,
+	startMinRatio: 0.1,
+	startTailMs: 18000,
+	freeRerolls: 3,
+	rerollMinDistanceMs: 8000,
 };

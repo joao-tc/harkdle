@@ -24,6 +24,10 @@ describe("DEFAULT_CONFIG", () => {
 		["randomStartMultiplier", 1.25],
 		["rerollPenalty", 0.1],
 		["rerollPenaltyFloor", 0.5],
+		["startMinRatio", 0.1],
+		["startTailMs", 18000],
+		["freeRerolls", 3],
+		["rerollMinDistanceMs", 8000],
 	] as const)("pins %s", (key, value) => {
 		expect(DEFAULT_CONFIG[key]).toBe(value);
 	});
