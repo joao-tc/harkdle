@@ -254,6 +254,113 @@ describe("createFakeAdapter", () => {
 		});
 	});
 
+	describe("failNextConnect", () => {
+		it("rejects the next connect, ends disconnected, then works again", async () => {
+			const adapter = createFakeAdapter();
+			const error = new PlaybackError("authentication", "no token");
+			adapter.failNextConnect(error);
+			await expect(adapter.connect({ volume: 0.5 })).rejects.toBe(error);
+			expect(adapter.getStatus()).toEqual({ kind: "disconnected" });
+			await adapter.connect({ volume: 0.5 });
+			expect(adapter.getStatus()).toEqual({ kind: "idle" });
+		});
+	});
+
+	describe("failNextRecover", () => {
+		it("rejects the next recover, stays interrupted, then works again", async () => {
+			const adapter = await ready();
+			adapter.interrupt("device-lost");
+			const error = new PlaybackError("device-lost", "still gone");
+			adapter.failNextRecover(error);
+			await expect(adapter.recover()).rejects.toBe(error);
+			expect(adapter.getStatus()).toEqual({
+				kind: "interrupted",
+				reason: "device-lost",
+				target,
+			});
+			await adapter.recover();
+			expect(adapter.getStatus()).toEqual({ kind: "ready", target });
+		});
+	});
+
+	describe("holdCues", () => {
+		it("keeps a cue cueing until releaseCue", async () => {
+			const adapter = await ready();
+			adapter.holdCues();
+			const cue = adapter.cue(other);
+			await flush();
+			expect(adapter.getStatus()).toEqual({ kind: "cueing", target: other });
+			adapter.releaseCue();
+			await cue;
+			expect(adapter.getStatus()).toEqual({ kind: "ready", target: other });
+		});
+
+		it("releases held cues oldest first, and a newer cue supersedes the older", async () => {
+			const adapter = await ready();
+			adapter.holdCues();
+			const older = adapter.cue(target);
+			const newer = adapter.cue(other);
+			await flush();
+			adapter.releaseCue();
+			await expect(older).rejects.toMatchObject({ kind: "superseded" });
+			expect(adapter.getStatus()).toEqual({ kind: "cueing", target: other });
+			adapter.releaseCue();
+			await newer;
+			expect(adapter.getStatus()).toEqual({ kind: "ready", target: other });
+		});
+
+		it("holds a playClip requested during the cue until it is released", async () => {
+			const adapter = await ready();
+			adapter.holdCues();
+			const cue = adapter.cue(other);
+			const clip = adapter.playClip(500);
+			await flush();
+			expect(adapter.getStatus().kind).toBe("cueing");
+			adapter.releaseCue();
+			await cue;
+			expect(adapter.getStatus()).toEqual({
+				kind: "playing-clip",
+				target: other,
+			});
+			adapter.endClip();
+			await expect(clip).resolves.toEqual({ kind: "ended" });
+		});
+	});
+
+	describe("reveal while cueing", () => {
+		it("waits for ready, then resolves and goes to revealing", async () => {
+			const adapter = await ready();
+			adapter.holdCues();
+			const cue = adapter.cue(other);
+			const seen = kinds(adapter);
+			let revealed = false;
+			const reveal = adapter.reveal().then(() => {
+				revealed = true;
+			});
+			await flush();
+			expect(revealed).toBe(false);
+			expect(adapter.getStatus().kind).toBe("cueing");
+			adapter.releaseCue();
+			await cue;
+			await reveal;
+			expect(seen).toEqual(["ready", "revealing"]);
+			expect(adapter.getStatus()).toEqual({
+				kind: "revealing",
+				target: other,
+			});
+		});
+
+		it("rejects when the cue fails", async () => {
+			const adapter = createFakeAdapter();
+			await adapter.connect({ volume: 0.5 });
+			adapter.failNextCue(new PlaybackError("cue-failed", "no"));
+			const cue = adapter.cue(target).catch(() => undefined);
+			const reveal = adapter.reveal();
+			await cue;
+			await expect(reveal).rejects.toMatchObject({ kind: "not-connected" });
+		});
+	});
+
 	it("disconnect settles a pending clip with stopped", async () => {
 		const adapter = await ready();
 		const clip = adapter.playClip(500);

@@ -26,6 +26,10 @@ export interface FakeAdapterControls {
 	interrupt(reason: InterruptionReason): void;
 	hideTab(): void;
 	failNextCue(error: PlaybackError): void;
+	failNextConnect(error: PlaybackError): void; // the next connect() leaves status disconnected and rejects
+	failNextRecover(error: PlaybackError): void; // the next recover() leaves status interrupted and rejects
+	holdCues(): void; // later cues stay "cueing" until releaseCue()
+	releaseCue(): void; // lets the oldest held cue reach "ready"
 }
 
 interface PendingClip {
@@ -44,6 +48,11 @@ export function createFakeAdapter(
 	let pendingPlay: Promise<ClipOutcome> | null = null;
 	let cueRun = 0;
 	let nextCueFailure: PlaybackError | null = null;
+	let nextConnectFailure: PlaybackError | null = null;
+	let nextRecoverFailure: PlaybackError | null = null;
+	let pendingReveal: Promise<void> | null = null;
+	let holding = false;
+	const heldCues: Array<() => void> = [];
 
 	const record = (method: FakeCall["method"], ...args: unknown[]) => {
 		calls.push({ method, args });
@@ -62,6 +71,11 @@ export function createFakeAdapter(
 		target = next;
 		setStatus({ kind: "cueing", target: next });
 		await Promise.resolve();
+		if (holding) {
+			await new Promise<void>((release) => {
+				heldCues.push(release);
+			});
+		}
 		if (run !== cueRun) {
 			throw new PlaybackError("superseded", "cue superseded");
 		}
@@ -118,6 +132,13 @@ export function createFakeAdapter(
 		return promise;
 	};
 
+	const revealNow = () => {
+		if (status.kind !== "ready" && status.kind !== "playing-clip") return;
+		const revealed = status.target;
+		void settleClip({ kind: "revealed" }, false);
+		setStatus({ kind: "revealing", target: revealed });
+	};
+
 	return {
 		get calls() {
 			return calls;
@@ -130,11 +151,16 @@ export function createFakeAdapter(
 		async connect(connectOptions) {
 			record("connect", connectOptions);
 			if (status.kind !== "disconnected") return;
+			const failure = nextConnectFailure;
+			nextConnectFailure = null;
 			setStatus({ kind: "connecting" });
 			await Promise.resolve();
-			if ((status as PlaybackStatus).kind === "connecting") {
-				setStatus({ kind: "idle" });
+			if ((status as PlaybackStatus).kind !== "connecting") return;
+			if (failure) {
+				setStatus({ kind: "disconnected" });
+				throw failure;
 			}
+			setStatus({ kind: "idle" });
 		},
 
 		disconnect() {
@@ -158,6 +184,7 @@ export function createFakeAdapter(
 			record("playClip", lengthMs);
 			if (clip) return clip.promise;
 			if (pendingPlay) return pendingPlay;
+			if (pendingReveal) return Promise.resolve({ kind: "revealed" });
 			if (status.kind === "cueing") {
 				const waiting = new Promise<ClipOutcome>((resolve, reject) => {
 					const stop = subscribe((next) => {
@@ -179,10 +206,28 @@ export function createFakeAdapter(
 
 		async reveal() {
 			record("reveal");
-			if (status.kind !== "ready" && status.kind !== "playing-clip") return;
-			const revealed = status.target;
-			void settleClip({ kind: "revealed" }, false);
-			setStatus({ kind: "revealing", target: revealed });
+			if (pendingReveal || pendingPlay) return;
+			if (status.kind === "cueing") {
+				const waiting = new Promise<void>((resolve, reject) => {
+					const stop = subscribe((next) => {
+						if (next.kind === "cueing") return;
+						stop();
+						// Deferred so the nested status change cannot reach listeners ahead of "ready".
+						queueMicrotask(() => {
+							pendingReveal = null;
+							if (next.kind === "ready") {
+								revealNow();
+								resolve();
+							} else {
+								reject(notPlayable(next));
+							}
+						});
+					});
+				});
+				pendingReveal = waiting;
+				return waiting;
+			}
+			revealNow();
 		},
 
 		async stop() {
@@ -200,6 +245,9 @@ export function createFakeAdapter(
 		async recover() {
 			record("recover");
 			if (status.kind !== "interrupted") return;
+			const failure = nextRecoverFailure;
+			nextRecoverFailure = null;
+			if (failure) throw failure;
 			if (!target) {
 				setStatus({ kind: "idle" });
 				return;
@@ -223,6 +271,22 @@ export function createFakeAdapter(
 
 		failNextCue(error) {
 			nextCueFailure = error;
+		},
+
+		failNextConnect(error) {
+			nextConnectFailure = error;
+		},
+
+		failNextRecover(error) {
+			nextRecoverFailure = error;
+		},
+
+		holdCues() {
+			holding = true;
+		},
+
+		releaseCue() {
+			heldCues.shift()?.();
 		},
 	};
 }

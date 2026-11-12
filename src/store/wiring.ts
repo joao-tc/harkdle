@@ -1,4 +1,5 @@
 import type { StoreApi } from "zustand/vanilla";
+import type { GameStoreState } from "./game";
 import type { PlaylistsState } from "./playlists";
 import type { Screen, SessionState } from "./session";
 
@@ -22,6 +23,19 @@ export function connectPlaylistsToSession(
 	return session.subscribe((state, prev) => {
 		if (hasUser(prev.screen) && !hasUser(state.screen)) {
 			playlists.getState().reset();
+		}
+	});
+}
+
+// When the session screen leaves "setup" (logout, expiry, Picker), calls game.leave().
+// Returns the unsubscribe function.
+export function connectGameToSession(
+	session: StoreApi<SessionState>,
+	game: StoreApi<GameStoreState>,
+): () => void {
+	return session.subscribe((state, prev) => {
+		if (prev.screen.name === "setup" && state.screen.name !== "setup") {
+			game.getState().leave();
 		}
 	});
 }
