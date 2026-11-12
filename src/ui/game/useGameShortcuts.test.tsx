@@ -82,10 +82,20 @@ describe("useGameShortcuts", () => {
 		const input = screen.getByLabelText("field");
 		expect(fireEvent.keyDown(input, { code: "Space" })).toBe(true);
 		expect(fireEvent.keyDown(input, { code: "KeyS" })).toBe(true);
-		expect(fireEvent.keyDown(input, { code: "KeyR", altKey: true })).toBe(true);
 		expect(
 			fireEvent.keyDown(input, { code: "KeyS", altKey: true, shiftKey: true }),
 		).toBe(true);
+		expect(play).not.toHaveBeenCalled();
+		expect(skip).not.toHaveBeenCalled();
+	});
+
+	it("swallows ⌥R without playing or skipping", () => {
+		const { store, play, skip } = fakeGame();
+		render(<Probe game={store} />);
+		const input = screen.getByLabelText("field");
+		expect(fireEvent.keyDown(input, { code: "KeyR", altKey: true })).toBe(
+			false,
+		);
 		expect(play).not.toHaveBeenCalled();
 		expect(skip).not.toHaveBeenCalled();
 	});

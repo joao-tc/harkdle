@@ -137,7 +137,8 @@ Each item is its own `specs/<item>/` folder planned through feature-dev, and non
 | 5b | **Game loop (visual)** | Large | visual | 5a | `main.tsx` wiring (real adapter); Setup, Round, Reveal, Results screens; key handler; `beforeunload` registration; Play here overlay (R6, R11–R15, R17). **Implemented**: [specs/game-loop-visual](../game-loop-visual/spec.md); the live check and sign-off are pending. |
 | 6 | **Settings persistence** | Medium | logic | 5b | Versioned settings store (R16, R18). **Implemented**: [specs/settings-persistence](../settings-persistence/spec.md); the live check is pending. |
 | — | *M1 playtest with friends: tune clip lengths and points in config* | | | 4, 5b, 6 | |
-| 7 | **Random start + rerolls (M2)** | Large | logic + visual | M1 | R20, R21. |
+| 7a | **Random start + rerolls (logic)** | Large | logic | M1 | Start-point window and draws, reroll budget and penalty in the game reducer, the store cueing `startMs` and `reroll()`, ⌥R mapping (R20, R21). **Implemented**: [specs/random-start-logic](../random-start-logic/spec.md); headless, so no live check. The start type is saved with the settings. |
+| 7b | **Random start + rerolls (visual)** | Medium | visual | 7a | Setup's Random toggle, the Reroll button with its cost label, the failed-reroll notice, the ⌥R key handler, Reveal rows. Planned once 7a is merged and green. |
 | 8 | **Endless (M2)** | Medium | logic + visual | M1 | R22. |
 
 **Required check for item 2's visual half (P16):** load the edge-case playlist (local files, episodes, unplayable or null items, a collaborative playlist, plus a 429 if it can be provoked) in the real Picker and confirm the cleaning summary shows the expected removal counts. **Run on 2026-11-10:** the Picker's removal counts for the owner's edge-case playlist matched the counts the owner computed independently. A collaborative playlist and a 429 have not been seen live.

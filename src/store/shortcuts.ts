@@ -1,4 +1,4 @@
-export type ShortcutAction = "play" | "skip";
+export type ShortcutAction = "play" | "skip" | "reroll";
 
 export interface KeyInput {
 	readonly code: string; // KeyboardEvent.code
@@ -12,6 +12,7 @@ export interface KeyInput {
 const ACTIONS: Readonly<Record<string, ShortcutAction>> = {
 	Space: "play",
 	KeyS: "skip",
+	KeyR: "reroll",
 };
 
 // Matches on `code`, not `key`: on macOS, Option+S types "ß", so `key` is

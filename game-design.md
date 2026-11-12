@@ -59,7 +59,9 @@ The clip lengths are starting values to be tuned through playtesting (see **Tuna
 - The **first 3 rerolls of a game are free**.
 - Each reroll after that is a **paid reroll**. It reduces the score of the round where it was used by **10%**, down to a minimum of 50% of that round's score. This stops players from rerolling repeatedly in search of an easy section.
 - Paid rerolls stack linearly, per round: the round's score is multiplied by ×(1 − 0.1·n) for n paid rerolls in that round, floored at ×0.5.
+- A reroll lands **at least 8 seconds away** from the current start point. If the start-point range has no such point, reroll is disabled for that round.
 - Rerolling does not change the current step.
+- If the track fails to load at the new start point, the reroll is cancelled: the round keeps its old start, no reroll is spent, and the player sees a notice.
 - The screen shows how many free rerolls are left.
 
 ## Guessing
@@ -122,7 +124,7 @@ The points for the fields that were guessed are added together. A player who get
 - Title and artist, when the album question was skipped: **×2.0**. Skipped rounds get no album points, so the higher multiplier keeps them close to a normal round.
 - A featured-artist lock still earns the hat trick: the combo needs every required field locked, at whatever credit.
 
-**Mode multiplier:** Random start scores **×1.25**.
+**Mode multiplier:** Random start scores **×1.25**. It applies to every round of a Random-start game, including a round that fell back to 0:00 because the track was short.
 
 **Reroll penalty:** once the 3 free rerolls of the game are used up, each paid reroll reduces the score of its round by 10%, down to a minimum of 50% (see **Rerolling the Start Point**).
 
@@ -170,6 +172,7 @@ All gameplay numbers live in **one configuration file**, not scattered through t
 | Random start range | 10% of the track's length to (length − 18 s) |
 | Minimum time left after the start point | 16s plus a 2s margin |
 | Free rerolls per game | 3 |
+| Minimum distance of a reroll from the current start | 8 s |
 | Penalty per paid reroll | −10% of the score of the round where it was used |
 | Minimum after reroll penalties | 50% of the round's score |
 | Endless lives | 3 misses |

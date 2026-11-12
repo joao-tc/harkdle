@@ -1,4 +1,5 @@
 import { matchAlbum, matchArtist, matchTitle } from "@/game/match";
+import { CLASSIC_START, type RoundStart, type StartWindow } from "@/game/start";
 import {
 	type Field,
 	type Guess,
@@ -17,6 +18,9 @@ export interface RoundState {
 	readonly step: Step;
 	readonly locks: Locks;
 	readonly ended: RoundEnd | null;
+	readonly startMs: number;
+	readonly window: StartWindow | null;
+	readonly paidRerolls: number;
 }
 
 export type RoundAction =
@@ -24,13 +28,19 @@ export type RoundAction =
 	| { readonly type: "skip" }
 	| { readonly type: "giveUp" };
 
-export function startRound(track: Track): RoundState {
+export function startRound(
+	track: Track,
+	start: RoundStart = CLASSIC_START,
+): RoundState {
 	return {
 		track,
 		albumSkipped: track.album.kind !== "album",
 		step: 1,
 		locks: {},
 		ended: null,
+		startMs: start.startMs,
+		window: start.window,
+		paidRerolls: 0,
 	};
 }
 

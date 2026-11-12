@@ -13,6 +13,12 @@ export interface Track {
 	readonly album: { readonly name: string; readonly kind: AlbumKind };
 }
 
+export interface TimedTrack extends Track {
+	readonly durationMs: number;
+}
+
+export type StartMode = "classic" | "random";
+
 // Strings are the suggestion the player picked. An absent or blank field is "not submitted".
 export type Guess = Partial<Record<Field, string>>;
 

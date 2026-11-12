@@ -7,46 +7,53 @@ import {
 	summarize,
 } from "@/game/game";
 import { createRng } from "@/game/rng";
-import type { Guess, Track } from "@/game/types";
+import type { Guess, TimedTrack } from "@/game/types";
 
-const BOHEMIAN: Track = {
+const BOHEMIAN: TimedTrack = {
 	id: "bohemian",
+	durationMs: 200_000,
 	title: "Bohemian Rhapsody - Remastered 2011",
 	artists: ["Queen"],
 	album: { name: "A Night at the Opera", kind: "album" },
 };
-const DREAMS: Track = {
+const DREAMS: TimedTrack = {
 	id: "dreams",
+	durationMs: 200_000,
 	title: "Dreams",
 	artists: ["Fleetwood Mac"],
 	album: { name: "Rumours", kind: "album" },
 };
-const PRESSURE: Track = {
+const PRESSURE: TimedTrack = {
 	id: "pressure",
+	durationMs: 200_000,
 	title: "Under Pressure - Remastered 2011",
 	artists: ["Queen", "David Bowie"],
 	album: { name: "Hot Space", kind: "album" },
 };
-const BLINDING: Track = {
+const BLINDING: TimedTrack = {
 	id: "blinding",
+	durationMs: 200_000,
 	title: "Blinding Lights",
 	artists: ["The Weeknd"],
 	album: { name: "Blinding Lights", kind: "single" },
 };
-const LUCKY: Track = {
+const LUCKY: TimedTrack = {
 	id: "lucky",
+	durationMs: 200_000,
 	title: "Get Lucky",
 	artists: ["Daft Punk", "Pharrell Williams", "Nile Rodgers"],
 	album: { name: "Random Access Memories", kind: "album" },
 };
-const HOTEL: Track = {
+const HOTEL: TimedTrack = {
 	id: "hotel",
+	durationMs: 200_000,
 	title: "Hotel California - 2013 Remaster",
 	artists: ["Eagles"],
 	album: { name: "Hotel California", kind: "album" },
 };
-const NEVERMIND: Track = {
+const NEVERMIND: TimedTrack = {
 	id: "nevermind",
+	durationMs: 200_000,
 	title: "Smells Like Teen Spirit",
 	artists: ["Nirvana"],
 	album: { name: "Nevermind", kind: "album" },
@@ -61,6 +68,7 @@ const SKIP: GameAction = { type: "skip" };
 const GIVE_UP: GameAction = { type: "giveUp" };
 const NEXT: GameAction = { type: "next" };
 const TRACK_FAILED: GameAction = { type: "trackFailed" };
+const REROLL: GameAction = { type: "reroll" };
 
 function start(seed: number): GameState {
 	return createGame({ tracks: TRACKS, rounds: ROUNDS, rng: createRng(seed) });
@@ -235,7 +243,42 @@ describe("seeded full-game replay", () => {
 	});
 
 	it("replays to a deep-equal state for the same seed and actions", () => {
-		expect(play(SEED)).toEqual(play(SEED));
+		const { rng: rngA, ...a } = play(SEED);
+		const { rng: rngB, ...b } = play(SEED);
+		expect(a).toEqual(b);
+		expect(rngA()).toBe(rngB());
+	});
+
+	it("replays a Random game with rerolls to the same starts", () => {
+		const playRandom = () => {
+			let game = createGame({
+				tracks: TRACKS,
+				rounds: ROUNDS,
+				rng: createRng(SEED),
+				startMode: "random",
+			});
+			const starts: number[] = [];
+			const note = () => {
+				if (game.phase === "round") starts.push(game.round.startMs);
+			};
+			note();
+			game = run(game, REROLL, REROLL, REROLL, REROLL);
+			note();
+			game = run(game, GIVE_UP, NEXT);
+			note();
+			game = run(game, REROLL, TRACK_FAILED);
+			note();
+			game = run(game, GIVE_UP, NEXT);
+			note();
+			return { game, starts };
+		};
+		const a = playRandom();
+		const b = playRandom();
+		expect(a.starts).toEqual(b.starts);
+		expect(a.game.rerollsUsed).toBe(5);
+		const { rng: _a, ...stateA } = a.game;
+		const { rng: _b, ...stateB } = b.game;
+		expect(stateA).toEqual(stateB);
 	});
 
 	it("shuffles a different seed into a different queue", () => {

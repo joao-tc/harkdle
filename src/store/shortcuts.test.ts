@@ -17,19 +17,16 @@ describe("shortcutFor", () => {
 	it.each([
 		["Space", "play"],
 		["KeyS", "skip"],
+		["KeyR", "reroll"],
 	])("maps Alt+%s to %s", (code, action) => {
 		expect(shortcutFor(key({ code }))).toBe(action);
-	});
-
-	it("leaves reroll (Alt+KeyR) unmapped", () => {
-		expect(shortcutFor(key({ code: "KeyR" }))).toBeNull();
 	});
 
 	it("ignores unmapped codes", () => {
 		expect(shortcutFor(key({ code: "toString" }))).toBeNull();
 	});
 
-	it.each(["Space", "KeyS"])("ignores %s without Alt", (code) => {
+	it.each(["Space", "KeyS", "KeyR"])("ignores %s without Alt", (code) => {
 		expect(shortcutFor(key({ code, altKey: false }))).toBeNull();
 	});
 
@@ -38,12 +35,14 @@ describe("shortcutFor", () => {
 		(modifier) => {
 			expect(shortcutFor(key({ [modifier]: true }))).toBeNull();
 			expect(shortcutFor(key({ code: "KeyS", [modifier]: true }))).toBeNull();
+			expect(shortcutFor(key({ code: "KeyR", [modifier]: true }))).toBeNull();
 		},
 	);
 
 	it("ignores auto-repeat", () => {
 		expect(shortcutFor(key({ repeat: true }))).toBeNull();
 		expect(shortcutFor(key({ code: "KeyS", repeat: true }))).toBeNull();
+		expect(shortcutFor(key({ code: "KeyR", repeat: true }))).toBeNull();
 	});
 
 	it("matches on code, so macOS Option+S (which types ß) still skips", () => {

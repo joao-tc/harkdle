@@ -1,11 +1,10 @@
-import type { AlbumKind, Track } from "@/game/types";
+import type { AlbumKind, TimedTrack } from "@/game/types";
 
 export const MIN_USABLE_TRACKS = 10; // A13 / R4
 
-export interface PlaylistTrack extends Track {
+export interface PlaylistTrack extends TimedTrack {
 	// `Track` (id, title, artists, album) is what the engine reads; these are kept by id for playback and the Reveal.
 	readonly uri: string;
-	readonly durationMs: number;
 	readonly coverUrl: string | null; // album.images[0].url (the largest)
 }
 
