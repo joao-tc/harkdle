@@ -1,16 +1,25 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_CONFIG } from "@/game/config";
 import {
 	createGame,
 	type GameAction,
 	type GameState,
 	gameReducer,
+	rerollStatus,
 	summarize,
 } from "@/game/game";
-import { createRng } from "@/game/rng";
-import type { Guess, Track } from "@/game/types";
+import { createRng, shuffle } from "@/game/rng";
+import type { RoundState } from "@/game/round";
+import { drawReroll, drawStart } from "@/game/start";
+import type { Guess, StartMode, TimedTrack } from "@/game/types";
 
-function album(n: number): Track {
+const LONG_MS = 200_000; // start window 20 s to 182 s
+const NO_SPOT_MS = 25_000; // window 2.5 s to 7 s: nothing is 8 s away from a start
+const SHORT_MS = 15_000; // too short for any window
+
+function album(n: number, durationMs = LONG_MS): TimedTrack {
 	return {
+		durationMs,
 		id: `album-${n}`,
 		title: `Song Number ${n}`,
 		artists: [`Artist ${n}`, "Guest Singer"],
@@ -18,8 +27,9 @@ function album(n: number): Track {
 	};
 }
 
-function single(n: number): Track {
+function single(n: number): TimedTrack {
 	return {
+		durationMs: LONG_MS,
 		id: `single-${n}`,
 		title: `Single Number ${n}`,
 		artists: [`Solo ${n}`],
@@ -27,7 +37,7 @@ function single(n: number): Track {
 	};
 }
 
-const ALBUMS = [1, 2, 3, 4, 5].map(album);
+const ALBUMS = [1, 2, 3, 4, 5].map((n) => album(n));
 const SINGLES = [1, 2, 3].map(single);
 
 const SUBMIT = (guess: Guess): GameAction => ({ type: "submit", guess });
@@ -35,20 +45,38 @@ const SKIP: GameAction = { type: "skip" };
 const GIVE_UP: GameAction = { type: "giveUp" };
 const NEXT: GameAction = { type: "next" };
 const TRACK_FAILED: GameAction = { type: "trackFailed" };
+const REROLL: GameAction = { type: "reroll" };
 
 function start(
-	tracks: readonly Track[] = ALBUMS,
+	tracks: readonly TimedTrack[] = ALBUMS,
 	rounds = 3,
 	seed = 42,
+	startMode: StartMode = "classic",
 ): GameState {
-	return createGame({ tracks, rounds, rng: createRng(seed) });
+	return createGame({ tracks, rounds, rng: createRng(seed), startMode });
+}
+
+function startRandom(durationMs = LONG_MS, rounds = 3, seed = 42): GameState {
+	const tracks = [1, 2, 3, 4, 5].map((n) => album(n, durationMs));
+	return start(tracks, rounds, seed, "random");
+}
+
+// The rng is a closure: it cannot round-trip through JSON or compare with toEqual.
+function plain(state: GameState): Omit<GameState, "rng"> {
+	const { rng: _rng, ...rest } = state;
+	return rest;
+}
+
+function roundOf(state: GameState): RoundState {
+	if (state.phase !== "round") throw new Error("not in a round");
+	return state.round;
 }
 
 function run(state: GameState, ...actions: GameAction[]): GameState {
 	return actions.reduce(gameReducer, state);
 }
 
-function current(state: GameState): Track {
+function current(state: GameState): TimedTrack {
 	const track = state.queue[state.cursor];
 	if (!track) throw new Error("no current track");
 	return track;
@@ -64,7 +92,7 @@ function perfect(state: GameState): GameAction {
 }
 
 function expectSerializable(state: GameState) {
-	expect(JSON.parse(JSON.stringify(state))).toEqual(state);
+	expect(JSON.parse(JSON.stringify(state))).toEqual(plain(state));
 	expect("round" in state).toBe(state.phase === "round");
 }
 
@@ -94,6 +122,9 @@ describe("createGame", () => {
 			queue: game.queue,
 			cursor: 0,
 			results: [],
+			startMode: "classic",
+			rerollsUsed: 0,
+			rng: expect.any(Function),
 			phase: "round",
 			round: {
 				track: game.queue[0],
@@ -101,6 +132,9 @@ describe("createGame", () => {
 				step: 1,
 				locks: {},
 				ended: null,
+				startMs: 0,
+				window: null,
+				paidRerolls: 0,
 			},
 		});
 	});
@@ -283,6 +317,272 @@ describe("summarize", () => {
 			missed: 2,
 			hatTricks: 1,
 			roundsPlayed: 4,
+		});
+	});
+});
+
+describe("start points", () => {
+	it("draws nothing from the rng after the shuffle in Classic", () => {
+		const used = createRng(5);
+		const bare = createRng(5);
+		createGame({ tracks: ALBUMS, rounds: 3, rng: used });
+		shuffle(ALBUMS, bare);
+		expect(used()).toBe(bare());
+	});
+
+	it("keeps Classic at 0:00 with no window across next and trackFailed", () => {
+		let game = start(ALBUMS, 3, 9);
+		for (const action of [GIVE_UP, NEXT, TRACK_FAILED, GIVE_UP, NEXT]) {
+			game = run(game, action);
+			if (game.phase === "round") {
+				expect(game.round).toMatchObject({ startMs: 0, window: null });
+			}
+		}
+		expect(game.rerollsUsed).toBe(0);
+	});
+
+	it("draws round 1's start right after the shuffle in Random", () => {
+		const used = createRng(5);
+		const bare = createRng(5);
+		const game = createGame({
+			tracks: ALBUMS,
+			rounds: 3,
+			rng: used,
+			startMode: "random",
+		});
+		const queue = shuffle(ALBUMS, bare);
+		const expected = drawStart(LONG_MS, bare, DEFAULT_CONFIG);
+		expect(game.queue).toEqual(queue);
+		expect(roundOf(game)).toMatchObject(expected);
+		expect(used()).toBe(bare());
+	});
+
+	it("starts every round of a Random game inside its window", () => {
+		for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+			const first = startRandom(LONG_MS, 3, seed);
+			const afterNext = run(first, GIVE_UP, NEXT);
+			const afterFailed = run(afterNext, TRACK_FAILED);
+			for (const game of [first, afterNext, afterFailed]) {
+				const round = roundOf(game);
+				expect(round.window).toEqual({ minMs: 20_000, maxMs: 182_000 });
+				expect(round.startMs).toBeGreaterThanOrEqual(20_000);
+				expect(round.startMs).toBeLessThanOrEqual(182_000);
+			}
+		}
+	});
+
+	it("starts a short track at 0 with no window and no reroll", () => {
+		const game = startRandom(SHORT_MS);
+		expect(roundOf(game)).toMatchObject({ startMs: 0, window: null });
+		expect(rerollStatus(game).available).toBe(false);
+		expect(gameReducer(game, REROLL)).toBe(game);
+	});
+
+	it("still gives a 0:00 fallback round the Random multiplier", () => {
+		const game = startRandom(SHORT_MS);
+		const done = run(game, perfect(game));
+		expect(done.results[0]?.score).toMatchObject({
+			modeMultiplier: 1.25,
+			total: 3375,
+		});
+	});
+
+	it("scores a Random round at 1.25 and leaves Classic at 1", () => {
+		const random = startRandom();
+		const classic = start();
+		expect(run(random, perfect(random)).results[0]?.score.total).toBe(3375);
+		expect(run(classic, perfect(classic)).results[0]?.score.total).toBe(2700);
+	});
+
+	it("is deterministic for the same seed and actions", () => {
+		const play = () => {
+			const used = createRng(11);
+			const tracks = [1, 2, 3, 4, 5].map((n) => album(n));
+			let game = createGame({
+				tracks,
+				rounds: 3,
+				rng: used,
+				startMode: "random",
+			});
+			game = run(game, REROLL, REROLL, GIVE_UP, NEXT, REROLL, TRACK_FAILED);
+			return { game, next: used() };
+		};
+		const a = play();
+		const b = play();
+		expect(plain(a.game)).toEqual(plain(b.game));
+		expect(a.next).toBe(b.next);
+	});
+});
+
+describe("reroll", () => {
+	it("moves the start at least 8 s away and inside the window", () => {
+		let game = startRandom();
+		for (let i = 0; i < 20; i++) {
+			const before = roundOf(game);
+			game = run(game, REROLL);
+			const after = roundOf(game);
+			expect(Math.abs(after.startMs - before.startMs)).toBeGreaterThanOrEqual(
+				DEFAULT_CONFIG.rerollMinDistanceMs,
+			);
+			expect(after.startMs).toBeGreaterThanOrEqual(20_000);
+			expect(after.startMs).toBeLessThanOrEqual(182_000);
+			expect(after.window).toEqual(before.window);
+		}
+	});
+
+	it("matches the pure draw it is built on", () => {
+		const used = createRng(3);
+		const sim = createRng(3);
+		const game = createGame({
+			tracks: ALBUMS,
+			rounds: 3,
+			rng: used,
+			startMode: "random",
+		});
+		shuffle(ALBUMS, sim);
+		drawStart(LONG_MS, sim, DEFAULT_CONFIG);
+		const expected = drawReroll(roundOf(game), sim, DEFAULT_CONFIG);
+		expect(expected).not.toBeNull();
+		expect(roundOf(run(game, REROLL)).startMs).toBe(expected?.startMs);
+	});
+
+	it("spends three free rerolls, then adds to the round's paid count", () => {
+		let game = startRandom();
+		const paid: number[] = [];
+		for (let i = 0; i < 5; i++) {
+			game = run(game, REROLL);
+			paid.push(roundOf(game).paidRerolls);
+		}
+		expect(paid).toEqual([0, 0, 0, 1, 2]);
+		expect(game.rerollsUsed).toBe(5);
+	});
+
+	it("applies 10% per paid reroll to the round score", () => {
+		const free = run(startRandom(), REROLL, REROLL, REROLL);
+		const paid1 = run(free, REROLL);
+		const paid2 = run(free, REROLL, REROLL);
+		const title = (g: GameState) => SUBMIT({ title: current(g).title });
+		const total = (g: GameState) =>
+			run(g, title(g), GIVE_UP).results[0]?.score.total;
+		expect(total(free)).toBe(1250);
+		expect(total(paid1)).toBe(1125);
+		expect(total(paid2)).toBe(1000);
+	});
+
+	it("never takes more than half off, however many paid rerolls", () => {
+		let game = startRandom();
+		for (let i = 0; i < 3 + 6; i++) game = run(game, REROLL);
+		expect(roundOf(game).paidRerolls).toBe(6);
+		const done = run(game, SUBMIT({ title: current(game).title }), GIVE_UP);
+		expect(done.results[0]?.score).toMatchObject({
+			rerollMultiplier: 0.5,
+			total: 625,
+		});
+	});
+
+	it("leaves the step, locks and track untouched", () => {
+		let game = startRandom();
+		game = run(game, SKIP, SUBMIT({ artist: current(game).artists[0] }));
+		const before = roundOf(game);
+		const after = roundOf(run(game, REROLL));
+		expect(before.step).toBe(2);
+		expect(after.step).toBe(before.step);
+		expect(after.locks).toEqual(before.locks);
+		expect(after.track).toBe(before.track);
+		expect(after.ended).toBeNull();
+		expect(after.startMs).not.toBe(before.startMs);
+	});
+
+	it("returns the identical state when it cannot apply", () => {
+		const classic = start();
+		const reveal = run(startRandom(), GIVE_UP);
+		const finished = run(startRandom(LONG_MS, 1), GIVE_UP, NEXT);
+		const noSpot = startRandom(NO_SPOT_MS);
+		expect(roundOf(noSpot).window).not.toBeNull();
+		expect(reveal.phase).toBe("reveal");
+		expect(finished.phase).toBe("finished");
+		for (const state of [classic, reveal, finished, noSpot]) {
+			expect(gameReducer(state, REROLL)).toBe(state);
+		}
+	});
+
+	it("carries the budget across rounds and resets it in a new game", () => {
+		let game = startRandom();
+		game = run(game, REROLL, REROLL, GIVE_UP, NEXT);
+		expect(game.rerollsUsed).toBe(2);
+		expect(roundOf(game).paidRerolls).toBe(0);
+		game = run(game, REROLL, REROLL);
+		expect(game.rerollsUsed).toBe(4);
+		expect(roundOf(game).paidRerolls).toBe(1);
+		expect(startRandom().rerollsUsed).toBe(0);
+	});
+
+	it("redraws on trackFailed without spending a reroll", () => {
+		const used = createRng(8);
+		const sim = createRng(8);
+		const game = createGame({
+			tracks: ALBUMS,
+			rounds: 3,
+			rng: used,
+			startMode: "random",
+		});
+		const queue = shuffle(ALBUMS, sim);
+		const first = drawStart(LONG_MS, sim, DEFAULT_CONFIG);
+		drawReroll(first, sim, DEFAULT_CONFIG);
+		const second = drawStart(LONG_MS, sim, DEFAULT_CONFIG);
+
+		const failed = run(game, REROLL, TRACK_FAILED);
+		expect(failed.rerollsUsed).toBe(1);
+		expect(roundOf(failed)).toMatchObject({
+			track: queue[1],
+			paidRerolls: 0,
+			startMs: second.startMs,
+		});
+	});
+});
+
+describe("rerollStatus", () => {
+	it("reports the free budget and when the next reroll is paid", () => {
+		let game = startRandom();
+		expect(rerollStatus(game)).toEqual({
+			available: true,
+			freeLeft: 3,
+			nextIsPaid: false,
+		});
+		game = run(game, REROLL, REROLL);
+		expect(rerollStatus(game)).toEqual({
+			available: true,
+			freeLeft: 1,
+			nextIsPaid: false,
+		});
+		game = run(game, REROLL);
+		expect(rerollStatus(game)).toEqual({
+			available: true,
+			freeLeft: 0,
+			nextIsPaid: true,
+		});
+		expect(rerollStatus(run(game, REROLL)).freeLeft).toBe(0);
+	});
+
+	it("is unavailable in Classic, short or no-spot rounds, reveal and finished", () => {
+		const unavailable = [
+			start(),
+			startRandom(SHORT_MS),
+			startRandom(NO_SPOT_MS),
+			run(startRandom(), GIVE_UP),
+			run(startRandom(LONG_MS, 1), GIVE_UP, NEXT),
+		];
+		for (const state of unavailable) {
+			expect(rerollStatus(state).available).toBe(false);
+		}
+	});
+
+	it("keeps the budget visible across rounds", () => {
+		const game = run(startRandom(), REROLL, REROLL, GIVE_UP, NEXT);
+		expect(rerollStatus(game)).toEqual({
+			available: true,
+			freeLeft: 1,
+			nextIsPaid: false,
 		});
 	});
 });

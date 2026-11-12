@@ -1,18 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { createGame, type GameState, gameReducer } from "@/game/game";
 import { createRng } from "@/game/rng";
-import type { Guess, Track } from "@/game/types";
+import type { Guess, TimedTrack } from "@/game/types";
 import { wrongFields } from "./feedback";
 
-const TRACKS: readonly Track[] = [
+const TRACKS: readonly TimedTrack[] = [
 	{
 		id: "a",
+		durationMs: 200_000,
 		title: "Alpha",
 		artists: ["Ann", "Bob"],
 		album: { name: "First", kind: "album" },
 	},
 	{
 		id: "b",
+		durationMs: 200_000,
 		title: "Beta",
 		artists: ["Cy"],
 		album: { name: "Second", kind: "single" },
