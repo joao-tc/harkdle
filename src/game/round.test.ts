@@ -6,6 +6,7 @@ import {
 	roundReducer,
 	startRound,
 } from "@/game/round";
+import type { RoundStart } from "@/game/start";
 import type { Guess, Step, Track } from "@/game/types";
 
 function track(overrides: Partial<Track> = {}): Track {
@@ -46,6 +47,48 @@ function submit(state: RoundState, guess: Guess): RoundState {
 	return roundReducer(state, { type: "submit", guess });
 }
 
+describe("round start fields", () => {
+	const START: RoundStart = {
+		startMs: 42_000,
+		window: { minMs: 20_000, maxMs: 180_000 },
+	};
+
+	it("defaults to the classic start with no paid rerolls", () => {
+		const round = startRound(track());
+		expect(round.startMs).toBe(0);
+		expect(round.window).toBeNull();
+		expect(round.paidRerolls).toBe(0);
+	});
+
+	it("keeps the start it is given", () => {
+		const round = startRound(track(), START);
+		expect(round.startMs).toBe(42_000);
+		expect(round.window).toEqual(START.window);
+		expect(round.paidRerolls).toBe(0);
+	});
+
+	it.each<[string, RoundAction]>([
+		["right submit", { type: "submit", guess: RIGHT }],
+		["wrong submit", { type: "submit", guess: { title: "Havana" } }],
+		["skip", { type: "skip" }],
+		["giveUp", { type: "giveUp" }],
+	])("%s leaves them untouched", (_name, action) => {
+		const state = { ...startRound(track(), START), paidRerolls: 2 };
+		const next = roundReducer(state, action);
+		expect(next.startMs).toBe(state.startMs);
+		expect(next.window).toEqual(state.window);
+		expect(next.paidRerolls).toBe(2);
+	});
+
+	it("keeps them through the last skip", () => {
+		const state: RoundState = { ...startRound(track(), START), step: 6 };
+		const next = roundReducer(state, { type: "skip" });
+		expect(next.ended).toBe("out-of-steps");
+		expect(next.startMs).toBe(42_000);
+		expect(next.window).toEqual(START.window);
+	});
+});
+
 describe("startRound", () => {
 	it("starts active at step 1 with no locks", () => {
 		const t = track();
@@ -55,6 +98,9 @@ describe("startRound", () => {
 			step: 1,
 			locks: {},
 			ended: null,
+			startMs: 0,
+			window: null,
+			paidRerolls: 0,
 		});
 	});
 
