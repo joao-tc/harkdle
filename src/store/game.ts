@@ -5,7 +5,7 @@ import { createGame, type GameState, gameReducer } from "@/game/game";
 import { DEFAULT_ROUNDS, pickRounds } from "@/game/presets";
 import type { Rng } from "@/game/rng";
 import type { RoundAction } from "@/game/round";
-import type { Guess } from "@/game/types";
+import type { Guess, StartMode } from "@/game/types";
 import type { PlaylistTrack } from "@/spotify/clean";
 import {
 	type InterruptionReason,
@@ -53,17 +53,22 @@ export interface GameStoreState {
 	readonly recovery: Recovery; // the last "Play here" attempt
 	readonly rounds: number; // chosen X
 	readonly volume: number; // 0-1
+	readonly startMode: StartMode;
+	readonly rerollNotice: boolean; // a reroll's cue failed and the old start was restored
 
 	setRounds(rounds: number): void;
+	setStartMode(mode: StartMode): void; // only in stage "idle"
 	setVolume(volume: number): void;
 	start(tracks: readonly PlaylistTrack[]): Promise<void>; // resolves when stage is "round" or start failed
 	play(): void;
 	submit(guess: Guess): void;
 	skip(): void;
 	giveUp(): void;
+	reroll(): void;
 	next(): void; // reveal -> countdown -> round, or finished after the last round
 	recover(): Promise<void>; // resolves when the attempt settled
 	dismissNotice(): void;
+	dismissRerollNotice(): void;
 	playAgain(): Promise<void>; // resolves when stage is "round" or start failed
 	leave(): void;
 }
@@ -170,7 +175,7 @@ export function createGameStore(deps: GameStoreDeps): StoreApi<GameStoreState> {
 				if (game.phase !== "round") return "finished";
 				const track = trackOf(game.round.track.id);
 				try {
-					await adapter.cue({ uri: track.uri, startMs: 0 });
+					await adapter.cue({ uri: track.uri, startMs: game.round.startMs });
 					return mine === epoch ? "ready" : "stale";
 				} catch (error) {
 					// Not a leave, so a superseded cue means the device was taken over.
@@ -190,7 +195,13 @@ export function createGameStore(deps: GameStoreDeps): StoreApi<GameStoreState> {
 
 		async function begin(tracks: readonly PlaylistTrack[]): Promise<void> {
 			const rounds = pickRounds(get().rounds, tracks.length);
-			const game = createGame({ tracks, rounds, rng: newRng(), config });
+			const game = createGame({
+				tracks,
+				rounds,
+				rng: newRng(),
+				config,
+				startMode: get().startMode,
+			});
 			const mine = ++epoch;
 			gate = "open";
 			gameTracks = tracks;
@@ -199,6 +210,7 @@ export function createGameStore(deps: GameStoreDeps): StoreApi<GameStoreState> {
 				game,
 				revealed: null,
 				skippedNotice: false,
+				rerollNotice: false,
 				recovery: "idle",
 			});
 			try {
@@ -218,6 +230,28 @@ export function createGameStore(deps: GameStoreDeps): StoreApi<GameStoreState> {
 		async function followUp(mine: number, work: Promise<void>): Promise<void> {
 			// A rejection means the adapter is already interrupted, and the listener shows it.
 			await work.catch(() => undefined);
+			if (mine !== epoch) return;
+			gate = isSettled(adapter.getStatus()) ? "open" : "waiting";
+		}
+
+		async function rerollCue(
+			mine: number,
+			before: GameState,
+			uri: string,
+			startMs: number,
+		): Promise<void> {
+			try {
+				await adapter.cue({ uri, startMs });
+			} catch (error) {
+				if (mine !== epoch) return;
+				if (error instanceof PlaybackError && error.kind === "cue-failed") {
+					set({ game: before, rerollNotice: true });
+					const outcome = await cueCurrent(mine);
+					if (outcome === "stale") return;
+					if (outcome === "finished") enter("finished");
+				}
+				// Any other error cut the cue: the reroll stands and the listener shows it.
+			}
 			if (mine !== epoch) return;
 			gate = isSettled(adapter.getStatus()) ? "open" : "waiting";
 		}
@@ -267,9 +301,15 @@ export function createGameStore(deps: GameStoreDeps): StoreApi<GameStoreState> {
 			recovery: "idle",
 			rounds: DEFAULT_ROUNDS,
 			volume: DEFAULT_VOLUME,
+			startMode: "classic",
+			rerollNotice: false,
 
 			setRounds(rounds) {
 				set({ rounds });
+			},
+
+			setStartMode(startMode) {
+				if (get().stage === "idle") set({ startMode });
 			},
 
 			setVolume(volume) {
@@ -305,6 +345,24 @@ export function createGameStore(deps: GameStoreDeps): StoreApi<GameStoreState> {
 				act({ type: "giveUp" });
 			},
 
+			reroll() {
+				const { stage, game, playback } = get();
+				if (stage !== "round" || game?.phase !== "round" || gate !== "open") {
+					return;
+				}
+				if (playback.kind !== "ready" && playback.kind !== "playing") return;
+				const next = gameReducer(game, { type: "reroll" });
+				if (next === game || next.phase !== "round") return;
+				gate = "acting";
+				set({ game: next });
+				void rerollCue(
+					epoch,
+					game,
+					trackOf(game.round.track.id).uri,
+					next.round.startMs,
+				);
+			},
+
 			next() {
 				const { stage, game } = get();
 				if (stage !== "reveal" || game === null) return;
@@ -320,6 +378,7 @@ export function createGameStore(deps: GameStoreDeps): StoreApi<GameStoreState> {
 				enter("countdown", {
 					game: advanced,
 					skippedNotice: false,
+					rerollNotice: false,
 					countdown: COUNTDOWN_FROM,
 				});
 				void openNextRound(mine);
@@ -345,6 +404,10 @@ export function createGameStore(deps: GameStoreDeps): StoreApi<GameStoreState> {
 				if (get().skippedNotice) set({ skippedNotice: false });
 			},
 
+			dismissRerollNotice() {
+				if (get().rerollNotice) set({ rerollNotice: false });
+			},
+
 			async playAgain() {
 				if (get().stage !== "finished") return;
 				await begin(gameTracks);
@@ -358,6 +421,7 @@ export function createGameStore(deps: GameStoreDeps): StoreApi<GameStoreState> {
 					game: null,
 					revealed: null,
 					skippedNotice: false,
+					rerollNotice: false,
 					countdown: null,
 					recovery: "idle",
 					playback: PREPARING,
