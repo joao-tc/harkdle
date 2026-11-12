@@ -1,19 +1,22 @@
 import { useStore } from "zustand";
 import type { StoreApi } from "zustand/vanilla";
+import type { GameStoreState } from "@/store/game";
 import type { PlaylistsState } from "@/store/playlists";
 import type { SessionState } from "@/store/session";
+import { GameFlow } from "@/ui/game/GameFlow";
 import { LoginScreen } from "@/ui/LoginScreen";
 import { PlaylistPicker } from "@/ui/PlaylistPicker";
 import { SetupErrorScreen } from "@/ui/SetupErrorScreen";
-import { SetupStandIn } from "@/ui/SetupStandIn";
 
 export function App({
 	session,
 	playlists,
+	game,
 	devUrl,
 }: {
 	session: StoreApi<SessionState>;
 	playlists: StoreApi<PlaylistsState>;
+	game: StoreApi<GameStoreState>;
 	devUrl: string;
 }) {
 	const screen = useStore(session, (s) => s.screen);
@@ -52,9 +55,10 @@ export function App({
 		case "setup":
 			if (selection.status === "ready" && selection.gate.ok) {
 				return (
-					<SetupStandIn
+					<GameFlow
+						game={game}
+						playlists={playlists}
 						summary={selection.summary}
-						usable={selection.playlist.report.usable}
 						onBack={toPicker}
 					/>
 				);

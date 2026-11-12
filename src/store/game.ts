@@ -70,7 +70,7 @@ export interface GameStoreState {
 
 export const DEFAULT_VOLUME = 0.8;
 export const COUNTDOWN_FROM = 3;
-export const COUNTDOWN_TICK_MS = 1000;
+export const COUNTDOWN_TICK_MS = 500;
 
 const PREPARING: PlaybackView = { kind: "preparing" };
 const READY: PlaybackView = { kind: "ready" };

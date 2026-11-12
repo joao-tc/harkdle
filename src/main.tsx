@@ -1,12 +1,22 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { createRng } from "@/game/rng";
 import { checkAccount } from "@/spotify/account";
 import { createSpotifyApi } from "@/spotify/api";
 import { createAuth, redirectUriFor } from "@/spotify/auth";
+import { createPlaybackAdapter } from "@/spotify/playback/engine";
+import { createSdkTransport } from "@/spotify/playback/sdk/transport";
+import { documentVisibility } from "@/spotify/playback/visibility";
 import { createPlaylistsClient } from "@/spotify/playlists";
+import { createGameStore } from "@/store/game";
+import { connectLeaveGuard } from "@/store/leaveGuard";
 import { createPlaylistsStore } from "@/store/playlists";
 import { createSessionStore } from "@/store/session";
-import { connectPlaylistsToSession, signedInUserId } from "@/store/wiring";
+import {
+	connectGameToSession,
+	connectPlaylistsToSession,
+	signedInUserId,
+} from "@/store/wiring";
 import { App } from "./App";
 import "./index.css";
 
@@ -59,6 +69,29 @@ const playlists = createPlaylistsStore({
 
 connectPlaylistsToSession(session, playlists);
 
+// The one place the real player is built: the SDK transport behind the playback adapter, under the game store.
+const adapter = createPlaybackAdapter({
+	transport: createSdkTransport({
+		getAccessToken: () => auth.getAccessToken(),
+		api,
+	}),
+	clock: { now: () => performance.now(), sleep },
+	visibility: documentVisibility(document),
+});
+
+const game = createGameStore({
+	adapter,
+	sleep,
+	newRng: () => createRng(crypto.getRandomValues(new Uint32Array(1))[0] ?? 1),
+	onStartFailed: (error) =>
+		session
+			.getState()
+			.playerFailed({ kind: error.kind, message: error.message }),
+});
+
+connectGameToSession(session, game);
+connectLeaveGuard(game, window);
+
 void session.getState().boot();
 
 createRoot(rootElement).render(
@@ -66,6 +99,7 @@ createRoot(rootElement).render(
 		<App
 			session={session}
 			playlists={playlists}
+			game={game}
 			devUrl={`${location.protocol}//127.0.0.1:${location.port}`}
 		/>
 	</StrictMode>,
