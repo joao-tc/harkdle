@@ -1,7 +1,7 @@
 # Game loop (visual) — tasks
 
 **Spec:** [spec.md](spec.md) · **Design:** [design.md](design.md)
-**Status:** Draft
+**Status:** Implemented (T1–T20 done; live check and sign-off pending)
 
 Every UI task is verified with jsdom (`// @vitest-environment jsdom` at the top of the test file, as in `PlaylistPicker.test.tsx`), `@testing-library/react` and `user-event`. Tests that need a live store use `createHarness` from `@/store/gameHarness`; none uses a real timer.
 

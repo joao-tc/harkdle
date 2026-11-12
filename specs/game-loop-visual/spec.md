@@ -2,7 +2,7 @@
 
 **Size:** Large (the composition root gets its first real adapter, a new screen set replaces the Setup stand-in, a new keyboard path, and a compliance surface)
 **Sub-phase:** visual (roadmap item 5b; the logic half is [specs/game-loop-logic](../game-loop-logic/spec.md), merged)
-**Status:** Draft
+**Status:** Implemented — the live check and the manual sign-off are pending
 **Parent:** [specs/app-v1/ROADMAP.md](../app-v1/ROADMAP.md), item 5b (R6, R11–R15, R17, and the screen side of R18)
 **Branch:** `feat/5b/game-loop-visual`, from `main` (5a is merged at `f184491`)
 
@@ -75,6 +75,12 @@ Epic IDs are kept where this half delivers them. `L-` rows are this half's own.
 - WHEN StrictMode double-mounts the Round THEN the key handler SHALL be registered once (cleanup unregisters).
 - WHEN `submit` is pressed with every field blank or unpicked THEN nothing happens and the hint shows (the store returns the same state).
 
+## Changes from first playtesting (2026-11-12)
+
+- A value guessed wrong is removed from that field's suggestions for the rest of the round (component state in `RoundScreen`; the next round offers it again).
+- The 3-2-1 countdown ticks every 500 ms instead of 1000 (`COUNTDOWN_TICK_MS`); the round still opens only after the next track is cued.
+- The Volume slider also shows on the Round and Reveal screens (not the Countdown), wired to the same `setVolume`.
+
 ## Out of scope
 
 | Excluded | Reason |
@@ -90,8 +96,8 @@ Epic IDs are kept where this half delivers them. `L-` rows are this half's own.
 
 ## Done when
 
-- [ ] `npm run typecheck`, `npm run lint`, `npm test` and `npm run build` are green, and `npm test -- tools/invariants` passes (`ui/` imports no `spotify/`; nothing outside `main.tsx` constructs the real adapter).
-- [ ] jsdom tests drive a whole 5-round game through `GameFlow` against `createHarness` (Setup → Connecting → Round → Reveal → Countdown → … → Results → Play again), and cover each of L-5 … L-15, R13, R17 and the Give up dialog. No test uses a real timer.
+- [x] `npm run typecheck`, `npm run lint`, `npm test` and `npm run build` are green, and `npm test -- tools/invariants` passes (`ui/` imports no `spotify/`; nothing outside `main.tsx` constructs the real adapter).
+- [x] jsdom tests drive a whole 5-round game through `GameFlow` against `createHarness` (Setup → Connecting → Round → Reveal → Countdown → … → Results → Play again), and cover each of L-5 … L-15, R13, R17 and the Give up dialog. No test uses a real timer.
 - [ ] **Required live check** in desktop Chrome at `http://127.0.0.1:5173` with the real SDK, the owner's account: a full 5-track game, including a mixed submission, a Give up, a Skip at step 6, ⌥Space / ⌥S typed inside a field on macOS (no "ß"), taking playback over from another device and pressing Play here, hiding the tab during a clip, and reloading mid-game (browser prompt). Record whether the cover is readable for the accent.
 - [ ] Manual sign-off at about 1280×800 for layout, the ladder, the Reveal (cover rules, logo ≥ 70 px, link), the countdown and the shortcuts' feel.
-- [ ] The ROADMAP row 5b links this spec and the "Needs verification" bullet on Spotify's guidelines is updated.
+- [x] The ROADMAP row 5b links this spec and the "Needs verification" bullet on Spotify's guidelines is updated.
