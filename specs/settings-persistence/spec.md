@@ -3,7 +3,7 @@
 **Size:** Large (a persisted shape consumed by two stores and the composition root; small in code)
 **Sub-phase:** logic (roadmap item 6. There is no visual half: the Picker and Setup already render store state, so nothing in `src/ui/` changes.)
 **Parent:** [specs/app-v1/ROADMAP.md](../app-v1/ROADMAP.md), item 6 (R16, R18, A16, A27)
-**Status:** Draft
+**Status:** Implemented — the live check is pending
 
 ## Problem
 
@@ -64,6 +64,6 @@ Category sweep: scope ✅ (S3, S5, out of scope below) · rules ✅ (no game rul
 
 ## Done when
 
-- [ ] `npm run lint`, `npm run typecheck`, `npm test` and `npm test -- tools/invariants` are green.
-- [ ] Tests prove P-1 to P-4 and P-6 to P-9 against an in-memory `KeyValueStore` and the existing fakes, with no real storage.
+- [x] `npm run lint`, `npm run typecheck`, `npm test` and `npm test -- tools/invariants` are green.
+- [x] Tests prove P-1 to P-4 and P-6 to P-9 against an in-memory `KeyValueStore` and the existing fakes, with no real storage.
 - [ ] Live, in desktop Chrome on `http://127.0.0.1:5173`: set volume 35% and X = 5 on Setup, reload, and Setup shows both. Press Continue on a playlist, reload, and the Picker preselects it and loads its summary. In DevTools set the record's `v` to 2, reload, and everything is back to defaults. Set `volume` to `7`, reload, and the slider shows 100%. Log out and in, and the playlist is preselected again.

@@ -1,7 +1,7 @@
 # Settings persistence — tasks
 
 **Spec:** [spec.md](spec.md) · **Design:** [design.md](design.md)
-**Status:** Draft
+**Status:** T1–T4 done; T5 live check pending
 
 ## Execution plan
 
