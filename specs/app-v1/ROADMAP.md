@@ -135,7 +135,7 @@ Each item is its own `specs/<item>/` folder planned through feature-dev, and non
 | 4 | **Deploy** | Medium | single | 0 | The Pages workflow, base path, second redirect URI (R19). Early, so the redirect works before there's a game to break. **Implemented**: [specs/deploy](../deploy/spec.md); deploys from the `stage` branch, and the first run was green. The live login check and the gate-block proof are pending. |
 | 5a | **Game loop (logic)** | Large | logic | 1, 2, 3 | Game store wiring the engine to the adapter (start, round actions, countdown, cue-failure skip, freeze and recover, play again); shortcut mapping; leave-page guard module; X presets; `session.playerFailed`. Tested against the fake adapter. **Done**: [specs/game-loop-logic](../game-loop-logic/spec.md). |
 | 5b | **Game loop (visual)** | Large | visual | 5a | `main.tsx` wiring (real adapter); Setup, Round, Reveal, Results screens; key handler; `beforeunload` registration; Play here overlay (R6, R11–R15, R17). **Implemented**: [specs/game-loop-visual](../game-loop-visual/spec.md); the live check and sign-off are pending. |
-| 6 | **Settings persistence** | Medium | logic | 5b | Versioned settings store (R16, R18). |
+| 6 | **Settings persistence** | Medium | logic | 5b | Versioned settings store (R16, R18). **Implemented**: [specs/settings-persistence](../settings-persistence/spec.md); the live check is pending. |
 | — | *M1 playtest with friends: tune clip lengths and points in config* | | | 4, 5b, 6 | |
 | 7 | **Random start + rerolls (M2)** | Large | logic + visual | M1 | R20, R21. |
 | 8 | **Endless (M2)** | Medium | logic + visual | M1 | R22. |

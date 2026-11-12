@@ -9,9 +9,12 @@ import { createSdkTransport } from "@/spotify/playback/sdk/transport";
 import { documentVisibility } from "@/spotify/playback/visibility";
 import { createPlaylistsClient } from "@/spotify/playlists";
 import { createGameStore } from "@/store/game";
+import { connectLastPlaylist } from "@/store/lastPlaylist";
 import { connectLeaveGuard } from "@/store/leaveGuard";
 import { createPlaylistsStore } from "@/store/playlists";
 import { createSessionStore } from "@/store/session";
+import { createSettings } from "@/store/settings";
+import { connectSettingsToGame } from "@/store/settingsGame";
 import {
 	connectGameToSession,
 	connectPlaylistsToSession,
@@ -91,6 +94,10 @@ const game = createGameStore({
 
 connectGameToSession(session, game);
 connectLeaveGuard(game, window);
+
+const settings = createSettings(localStorage);
+connectSettingsToGame(settings, game);
+connectLastPlaylist({ settings, session, playlists });
 
 void session.getState().boot();
 
