@@ -134,7 +134,7 @@ Each item is its own `specs/<item>/` folder planned through feature-dev, and non
 | 3 | **Playback adapter** | Large | logic | 0 | `PlaybackAdapter` extracted from the spike (T9) with cue/play/stop, interruption events, volume. A fake adapter for tests (R6, R13, R14 detection, R18). **Done**: [specs/playback-adapter](../playback-adapter/spec.md). |
 | 4 | **Deploy** | Medium | single | 0 | The Pages workflow, base path, second redirect URI (R19). Early, so the redirect works before there's a game to break. |
 | 5a | **Game loop (logic)** | Large | logic | 1, 2, 3 | Game store wiring the engine to the adapter (start, round actions, countdown, cue-failure skip, freeze and recover, play again); shortcut mapping; leave-page guard module; X presets; `session.playerFailed`. Tested against the fake adapter. **Done**: [specs/game-loop-logic](../game-loop-logic/spec.md). |
-| 5b | **Game loop (visual)** | Large | visual | 5a | `main.tsx` wiring (real adapter); Setup, Round, Reveal, Results screens; key handler; `beforeunload` registration; Play here overlay (R6, R11–R15, R17). Spec and design written once 5a is merged. |
+| 5b | **Game loop (visual)** | Large | visual | 5a | `main.tsx` wiring (real adapter); Setup, Round, Reveal, Results screens; key handler; `beforeunload` registration; Play here overlay (R6, R11–R15, R17). **Implemented**: [specs/game-loop-visual](../game-loop-visual/spec.md); the live check and sign-off are pending. |
 | 6 | **Settings persistence** | Medium | logic | 5b | Versioned settings store (R16, R18). |
 | — | *M1 playtest with friends: tune clip lengths and points in config* | | | 4, 5b, 6 | |
 | 7 | **Random start + rerolls (M2)** | Large | logic + visual | M1 | R20, R21. |
@@ -147,7 +147,7 @@ Items 1, 2, 3 and 4 have disjoint layers and can run as parallel waves once 0 la
 ## Needs verification (before the item that depends on it)
 
 - How `/me` reports Premium vs Lite/Mini (`product` values), and what a non-allowlisted user gets back (expected 403). This matters for item 0, R1. The SDK `account_error` is the fallback signal.
-- Spotify Design Guidelines on attribution, logo and linking back to the track, for item 5's Reveal screen.
+- ~~Spotify Design Guidelines on attribution, logo and linking back to the track, for item 5's Reveal screen.~~ Verified 2026-11-12 ([developer.spotify.com/documentation/design](https://developer.spotify.com/documentation/design)): metadata unaltered and fully viewable; artwork unaltered, uncropped, with nothing over it (4 px radius on small screens, 8 px on large); playing views carry the full logo (≥ 70 px, white on non-black); a link back reading OPEN / PLAY / LISTEN ON SPOTIFY; a background colour may be extracted from the artwork (fallback `#191414`). Still to confirm live: whether `i.scdn.co` allows the CORS read the accent needs (5b live check).
 - ~~Whether the SDK honours `setVolume` under the cued flow without disturbing cue timing (item 3).~~ Checked live: the mute holds and restores cleanly (ADR-0003). Resume→first-position latency was not measured.
 - The edge-case playlist was run in the Picker on 2026-11-10 and its removal counts matched (P16). Still unseen live: a collaborative playlist, a null item and a 429.
 

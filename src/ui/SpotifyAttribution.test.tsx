@@ -19,6 +19,21 @@ describe("SpotifyAttribution", () => {
 		).toBe(true);
 	});
 
+	it("renders custom text beside the logo", () => {
+		render(<SpotifyAttribution text="Track data and artwork from Spotify" />);
+
+		const footer = screen.getByRole("contentinfo");
+		expect(
+			footer.contains(screen.getByText("Track data and artwork from Spotify")),
+		).toBe(true);
+		expect(
+			screen.queryByText("Playlist data and artwork from Spotify"),
+		).toBeNull();
+		expect(footer.contains(screen.getByRole("img", { name: "Spotify" }))).toBe(
+			true,
+		);
+	});
+
 	it("uses the provided SVG as a real img", () => {
 		render(<SpotifyAttribution />);
 
