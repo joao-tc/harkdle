@@ -12,6 +12,7 @@ function setup() {
 				volume: 0.35,
 				rounds: 5,
 				lastPlaylistId: null,
+				startMode: "random",
 			}),
 		},
 	});
@@ -23,11 +24,12 @@ function setup() {
 }
 
 describe("connectSettingsToGame", () => {
-	it("puts the saved volume and rounds in the game store without writing", () => {
+	it("puts the saved volume, rounds and start mode in the game store without writing", () => {
 		const { storage, h } = setup();
 
 		expect(h.store.getState().volume).toBe(0.35);
 		expect(h.store.getState().rounds).toBe(5);
+		expect(h.store.getState().startMode).toBe("random");
 		expect(storage.writes).toBe(0);
 	});
 
@@ -56,6 +58,7 @@ describe("connectSettingsToGame", () => {
 			volume: 0.5,
 			rounds: 5,
 			lastPlaylistId: null,
+			startMode: "random",
 		});
 	});
 
@@ -70,7 +73,32 @@ describe("connectSettingsToGame", () => {
 			volume: 0.35,
 			rounds: 20,
 			lastPlaylistId: null,
+			startMode: "random",
 		});
+	});
+
+	it("saves when the start mode changes", () => {
+		const { storage, h, saved } = setup();
+
+		h.store.getState().setStartMode("classic");
+
+		expect(storage.writes).toBe(1);
+		expect(saved()).toEqual({
+			v: 1,
+			volume: 0.35,
+			rounds: 5,
+			lastPlaylistId: null,
+			startMode: "classic",
+		});
+	});
+
+	it("starts the next game with the saved start mode", async () => {
+		const { h } = setup();
+
+		await h.store.getState().start(h.tracks);
+
+		const game = h.store.getState().game;
+		expect(game?.startMode).toBe("random");
 	});
 
 	it("saves the clamped volume, not the raw one", () => {
@@ -115,6 +143,7 @@ describe("connectSettingsToGame", () => {
 
 		h.store.getState().setVolume(0.35);
 		h.store.getState().setRounds(5);
+		h.store.getState().setStartMode("random");
 
 		expect(storage.writes).toBe(0);
 	});

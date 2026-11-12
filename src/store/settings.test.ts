@@ -10,11 +10,12 @@ function loadFrom(raw: unknown) {
 }
 
 describe("defaults", () => {
-	it("are 0.8 volume, 10 rounds and no playlist", () => {
+	it("are 0.8 volume, 10 rounds, no playlist and Classic", () => {
 		expect(DEFAULT_SETTINGS).toEqual({
 			volume: 0.8,
 			rounds: 10,
 			lastPlaylistId: null,
+			startMode: "classic",
 		});
 	});
 });
@@ -44,11 +45,18 @@ describe("loading an unusable record", () => {
 
 describe("loading a v1 record", () => {
 	it("keeps a fully valid record", () => {
-		const saved = { v: 1, volume: 0.3, rounds: 20, lastPlaylistId: "abc" };
+		const saved = {
+			v: 1,
+			volume: 0.3,
+			rounds: 20,
+			lastPlaylistId: "abc",
+			startMode: "random",
+		};
 		expect(loadFrom(saved)).toEqual({
 			volume: 0.3,
 			rounds: 20,
 			lastPlaylistId: "abc",
+			startMode: "random",
 		});
 	});
 
@@ -87,13 +95,45 @@ describe("loading a v1 record", () => {
 		expect(loadFrom({ v: 1, lastPlaylistId }).lastPlaylistId).toBe(expected);
 	});
 
+	it.each([
+		["classic", "classic"],
+		["random", "random"],
+		["endless", "classic"],
+		["Random", "classic"],
+		[1, "classic"],
+		[null, "classic"],
+	])("startMode %s becomes %s", (startMode, expected) => {
+		expect(loadFrom({ v: 1, startMode }).startMode).toBe(expected);
+	});
+
+	it("reads a v1 record saved before startMode existed as Classic", () => {
+		expect(
+			loadFrom({ v: 1, volume: 0.3, rounds: 5, lastPlaylistId: "abc" }),
+		).toEqual({
+			volume: 0.3,
+			rounds: 5,
+			lastPlaylistId: "abc",
+			startMode: "classic",
+		});
+	});
+
 	it("falls back one bad field without touching the good ones", () => {
 		expect(
 			loadFrom({ v: 1, volume: 0.4, rounds: 7, lastPlaylistId: "pl1" }),
-		).toEqual({ volume: 0.4, rounds: 10, lastPlaylistId: "pl1" });
+		).toEqual({
+			volume: 0.4,
+			rounds: 10,
+			lastPlaylistId: "pl1",
+			startMode: "classic",
+		});
 		expect(
 			loadFrom({ v: 1, volume: "loud", rounds: 5, lastPlaylistId: "" }),
-		).toEqual({ volume: 0.8, rounds: 5, lastPlaylistId: null });
+		).toEqual({
+			volume: 0.8,
+			rounds: 5,
+			lastPlaylistId: null,
+			startMode: "classic",
+		});
 	});
 });
 
@@ -102,10 +142,12 @@ describe("update", () => {
 		const settings = createSettings(memoryStorage());
 		settings.update({ volume: 0.2 });
 		settings.update({ rounds: 5 });
+		settings.update({ startMode: "random" });
 		expect(settings.get()).toEqual({
 			volume: 0.2,
 			rounds: 5,
 			lastPlaylistId: null,
+			startMode: "random",
 		});
 	});
 
@@ -118,6 +160,7 @@ describe("update", () => {
 			volume: 0.5,
 			rounds: 10,
 			lastPlaylistId: "pl1",
+			startMode: "classic",
 		});
 	});
 
@@ -127,11 +170,13 @@ describe("update", () => {
 			volume: 0.5,
 			rounds: 20,
 			lastPlaylistId: "pl1",
+			startMode: "random",
 		});
 		expect(createSettings(storage).get()).toEqual({
 			volume: 0.5,
 			rounds: 20,
 			lastPlaylistId: "pl1",
+			startMode: "random",
 		});
 	});
 

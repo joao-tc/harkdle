@@ -1,4 +1,5 @@
 import { DEFAULT_ROUNDS, ROUND_PRESETS } from "@/game/presets";
+import type { StartMode } from "@/game/types";
 import type { KeyValueStore } from "@/spotify/auth";
 import { DEFAULT_VOLUME } from "./game";
 
@@ -6,6 +7,7 @@ export interface Settings {
 	readonly volume: number;
 	readonly rounds: number;
 	readonly lastPlaylistId: string | null;
+	readonly startMode: StartMode;
 }
 
 export const SETTINGS_KEY = "harkdle.settings";
@@ -14,6 +16,7 @@ export const DEFAULT_SETTINGS: Settings = {
 	volume: DEFAULT_VOLUME,
 	rounds: DEFAULT_ROUNDS,
 	lastPlaylistId: null,
+	startMode: "classic",
 };
 
 export interface SettingsHandle {
@@ -31,7 +34,7 @@ function parse(storage: KeyValueStore): Settings {
 		}
 		const record = value as Record<string, unknown>;
 		if (record.v !== 1) return DEFAULT_SETTINGS;
-		const { volume, rounds, lastPlaylistId } = record;
+		const { volume, rounds, lastPlaylistId, startMode } = record;
 		return {
 			volume:
 				typeof volume === "number" && Number.isFinite(volume)
@@ -46,6 +49,10 @@ function parse(storage: KeyValueStore): Settings {
 				typeof lastPlaylistId === "string" && lastPlaylistId !== ""
 					? lastPlaylistId
 					: null,
+			startMode:
+				startMode === "classic" || startMode === "random"
+					? startMode
+					: DEFAULT_SETTINGS.startMode,
 		};
 	} catch {
 		return DEFAULT_SETTINGS;

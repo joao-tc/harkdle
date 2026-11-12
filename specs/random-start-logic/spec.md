@@ -24,7 +24,7 @@ M1 plays every clip from 0:00. Item 7 adds the second start type: each round sta
 | S10 | Does Classic change? | Resolved | **No.** Classic draws nothing from the RNG, so the same seed gives the same queue and the same results as today. |
 | S11 | Where does the RNG for start points live? | Resolved | In `GameState` (see design.md, decision D2). The injected RNG that shuffles the queue keeps drawing, so a replay of the same seed and actions is identical (invariant 2). |
 | S12 | How does `game/` learn the track length? | Resolved | A `TimedTrack` type (`Track` + `durationMs`), the queue's element type. `PlaylistTrack` already has `durationMs`. `Track` itself, and every test that builds one for the round reducer, stay as they are. |
-| S13 | Is the start type remembered between visits? | Resolved | By item 6 (A16), not here. This half keeps `startMode` in the game store in memory, like X and volume today. Whichever of items 6 and 7 lands second wires the two together. |
+| S13 | Is the start type remembered between visits? | Resolved | Yes (A16). Item 6 landed first, so this half wires `startMode` into the settings record and `connectSettingsToGame`. |
 | S14 | Does the Results screen show rerolls used? | Resolved | **No.** It is not in game-design.md's end-of-game stats. The Reveal already shows the "Rerolls ×0.9" row (visual half confirms). |
 | S15 | The numbers (3 free, 10%, floor 50%, 10%, 18 s, 8 s)? | Resolved | All in `DEFAULT_CONFIG` (game-design.md: one config file). New keys: `startMinRatio`, `startTailMs`, `freeRerolls`, `rerollMinDistanceMs`. |
 
@@ -83,4 +83,4 @@ All of RS-1 to RS-12 are implemented and covered by tests; the gate is green (li
 - **`rng` in `GameState`.** The state now holds a function (D2), so the serialisation check in `game.test.ts` and the replay equality in `replay.test.ts` compare states without `rng`; the replay test also checks both RNGs give the same next value. Pinned round-shape tests (`round.test.ts`, `game.test.ts`) were extended with the new fields, not loosened.
 - **Float edge.** `startWindow` subtracts an epsilon before `Math.ceil`, so `0.1 * 70` does not round up to 8.
 - **Both notices.** If the old start's re-cue also fails, `rerollNotice` and `skippedNotice` are both true. The visual half decides which to show.
-- **Not persisted.** The start type is not saved with the settings (S13). Item 6 landed first, so the visual half, or a follow-up, has to add it to the settings and `connectSettingsToGame`.
+- **Persisted afterwards.** Item 6 landed first, so this half added `startMode` to the settings (S13): a per-field, optional key in the existing `v: 1` record, with `classic` for a record saved before it existed, and `connectSettingsToGame` applies and saves it like volume and rounds. The Setup toggle that calls `setStartMode` is still the visual half's.
