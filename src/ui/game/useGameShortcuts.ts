@@ -29,7 +29,7 @@ export function useGameShortcuts(
 			if (event.repeat) return;
 			const state = game.getState();
 			if (action === "play") state.play();
-			else state.skip();
+			else if (action === "skip") state.skip();
 		};
 		document.addEventListener("keydown", onKeyDown, true);
 		return () => document.removeEventListener("keydown", onKeyDown, true);
