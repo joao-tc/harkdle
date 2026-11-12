@@ -3,7 +3,8 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+	base: command === "build" ? "/harkdle/" : "/",
 	plugins: [react(), tailwindcss()],
 	resolve: {
 		alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
@@ -13,4 +14,4 @@ export default defineConfig({
 		environment: "node",
 		include: ["src/**/*.test.{ts,tsx}", "tools/**/*.test.ts"],
 	},
-});
+}));
